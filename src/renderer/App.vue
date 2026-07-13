@@ -104,7 +104,7 @@
                 <div class="flex flex-row gap-4 items-center p-4">
                     <img
                         class="w-16 rounded-full"
-                        src="https://upload.wikimedia.org/wikipedia/commons/thumb/b/b5/Windows_10_Default_Profile_Picture.svg/2048px-Windows_10_Default_Profile_Picture.svg.png"
+                        src="/img/pfp.svg"
                         alt="Profile"
                     />
                     <div>
