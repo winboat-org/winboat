@@ -663,7 +663,8 @@ export class Winboat {
         }
 
         try {
-            logger.info(`Launch FreeRDP with command:\n${freeRDPInstallation.stringifyExec(args)}`);
+            const safeToLogArgs = freeRDPInstallation.stringifyExec(args).replace(/\/p:[^ ]+/g, "/p:********");
+            logger.info(`Launch FreeRDP with command:\n${safeToLogArgs}`);
             await freeRDPInstallation.exec(args);
         } catch (e) {
             const execError = e as ExecFileAsyncError;
