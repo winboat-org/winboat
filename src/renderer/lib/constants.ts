@@ -76,7 +76,7 @@ export const GUEST_QMP_PORT = 7149;
 export const GUEST_UPDATE_PORT = 7150;
 export const GUEST_RDP_PORT = 3389;
 
-export const HELIOS_DOCKUR_IMAGE = "ghcr.io/winboat-org/helios-windows:6.03.5";
+export const HELIOS_DOCKUR_IMAGE = "ghcr.io/winboat-org/helios-windows:6.03.7";
 export const DEFAULT_GPU_VRAM_GB = 4;
 export const GPU_VRAM_RESERVE_GB = 2;
 export const UNKNOWN_GPU_VRAM_MAX_GB = 16;
