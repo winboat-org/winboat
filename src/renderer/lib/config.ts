@@ -96,6 +96,45 @@ const defaultConfig: WinboatConfigObj = {
     appsSortOrder: 'name',
 };
 
+function isRdpArg(value: unknown): value is RdpArg {
+    if (typeof value !== "object" || value === null) return false;
+
+    const arg = value as Partial<RdpArg>;
+
+    return (
+        typeof arg.newArg === "string" &&
+        typeof arg.isReplacement === "boolean" &&
+        (arg.original === undefined || typeof arg.original === "string")
+    );
+}
+
+/**
+ * Drops `rdpArgs` entries that don't match {@link RdpArg}, such as the plain strings people tend to write
+ * when editing the config by hand. Without this, those entries travel all the way to the FreeRDP command
+ * line as `undefined` and every app launch fails without a single line of feedback.
+ */
+function sanitizeRdpArgs(configObj: WinboatConfigObj): void {
+    const rdpArgs: unknown = configObj.rdpArgs;
+
+    if (!Array.isArray(rdpArgs)) {
+        logger.error(
+            `Config key 'rdpArgs' must be an array, got ${JSON.stringify(rdpArgs)}. Using the default value instead.`,
+        );
+        configObj.rdpArgs = [...defaultConfig.rdpArgs];
+        return;
+    }
+
+    const invalidArgs = rdpArgs.filter(arg => !isRdpArg(arg));
+
+    if (!invalidArgs.length) return;
+
+    logger.error(
+        `Ignoring invalid 'rdpArgs' entries (${invalidArgs.length}): ${JSON.stringify(invalidArgs)}. ` +
+            `Each entry must be an object like { "newArg": "/sec:tls", "isReplacement": false }.`,
+    );
+    configObj.rdpArgs = rdpArgs.filter(isRdpArg);
+}
+
 export class WinboatConfig {
     private static readonly configPath: string = path.join(WINBOAT_DIR, "winboat.config.json");
     private static instance: WinboatConfig | null = null;
@@ -195,6 +234,8 @@ export class WinboatConfig {
                 fs.writeFileSync(WinboatConfig.configPath, JSON.stringify(configObj, null, 4), "utf-8");
                 console.log("Wrote updated config with missing keys to disk");
             }
+
+            sanitizeRdpArgs(configObj);
 
             return { ...configObj };
         } catch (e) {
