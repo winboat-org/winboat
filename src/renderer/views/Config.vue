@@ -132,7 +132,8 @@
                             >
                                 <Icon class="inline-flex text-yellow-500 size-8" icon="clarity:warning-solid"></Icon>
                                 <h1 class="my-0 text-base font-normal text-yellow-200">
-                                    USB Passthrough is not yet supported while using Podman as the container runtime.
+                                    USB Passthrough is not yet supported while using
+                                    {{ wbConfig.config.containerRuntime }} as the container runtime.
                                 </h1>
                             </x-card>
                         </template>
@@ -140,7 +141,7 @@
                             v-if="
                                 !usbPassthroughDisabled &&
                                 !isUpdatingUSBPrerequisites &&
-                                wbConfig.config.containerRuntime === ContainerRuntimes.DOCKER
+                                wbConfig.config.containerRuntime !== ContainerRuntimes.PODMAN
                             "
                         >
                             <x-label
