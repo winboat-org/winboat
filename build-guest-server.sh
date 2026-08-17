@@ -29,7 +29,7 @@ if [ -z "${HELIOS_BUNDLE:-}" ]; then
         --repo "$HELIOS_REPOSITORY" \
         --name "$HELIOS_ARTIFACT" \
         --dir "$HELIOS_DOWNLOAD_DIR"
-    HELIOS_BUNDLE=$(find "$HELIOS_DOWNLOAD_DIR" -maxdepth 1 -type f -name '*.zip' -print -quit)
+    HELIOS_BUNDLE=$(find "$HELIOS_DOWNLOAD_DIR" -maxdepth 1 -type f -name '*.zip' -print -quit | tr -d '\r')
     [ -n "$HELIOS_BUNDLE" ] || { echo "Downloaded Helios artifact did not contain a bundle." >&2; exit 1; }
     [ -f "$HELIOS_BUNDLE.sha256" ] || { echo "Downloaded Helios bundle has no checksum." >&2; exit 1; }
     ( cd "$HELIOS_DOWNLOAD_DIR" && sha256sum -c "$(basename "$HELIOS_BUNDLE").sha256" )
