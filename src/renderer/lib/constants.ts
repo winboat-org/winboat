@@ -111,3 +111,14 @@ export const RESTART_UNLESS_STOPPED = "unless-stopped";
 export const RESTART_ON_FAILURE = "on-failure";
 export const RESTART_ALWAYS = "always";
 export const RESTART_NO = "no";
+
+/**
+ * Restart policies under which the container comes back up on its own.
+ * Legacy installs shipped `on-failure` as the default, so it has to be
+ * recognized here even though we never write it anymore.
+ */
+export const AUTOSTART_RESTART_POLICIES: string[] = [
+    RESTART_UNLESS_STOPPED,
+    RESTART_ALWAYS,
+    RESTART_ON_FAILURE,
+];

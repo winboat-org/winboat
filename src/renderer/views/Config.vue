@@ -450,6 +450,7 @@ import {
     USB_VID_BLACKLIST,
     RESTART_UNLESS_STOPPED,
     RESTART_NO,
+    AUTOSTART_RESTART_POLICIES,
     GUEST_QMP_PORT,
     MIN_VM_RAM_GB,
     QMP_ARGUMENT,
@@ -474,6 +475,10 @@ const sharedFolderPath = ref("");
 const origSharedFolderPath = ref("");
 const origAutoStartContainer = ref(false);
 const autoStartContainer = ref(false);
+// True when the compose file holds a restart policy we no longer write (e.g. the
+// legacy `on-failure` default). Those can't be represented by the switch alone, so
+// we keep the Save button enabled to let the user normalize the policy.
+const hasLegacyRestartPolicy = ref(false);
 const isApplyingChanges = ref(false);
 const resetQuestionCounter = ref(0);
 const isResettingWinboat = ref(false);
@@ -521,8 +526,12 @@ async function assignValues() {
     origShareFolder.value = shareFolder.value;
     origSharedFolderPath.value = sharedFolderPath.value;
 
-    autoStartContainer.value = compose.value.services.windows.restart === RESTART_UNLESS_STOPPED;
+    // Any policy that makes the container come back on its own counts as auto start,
+    // not just the one we currently write out
+    const restartPolicy = compose.value.services.windows.restart;
+    autoStartContainer.value = AUTOSTART_RESTART_POLICIES.includes(restartPolicy);
     origAutoStartContainer.value = autoStartContainer.value;
+    hasLegacyRestartPolicy.value = restartPolicy !== RESTART_UNLESS_STOPPED && restartPolicy !== RESTART_NO;
 
     const specs = await getSpecs();
     maxRamGB.value = specs.ramGB;
@@ -671,7 +680,8 @@ const saveButtonDisabled = computed(() => {
         origRamGB.value !== ramGB.value ||
         shareFolder.value !== origShareFolder.value ||
         sharedFolderPath.value !== origSharedFolderPath.value ||
-        autoStartContainer.value !== origAutoStartContainer.value;
+        autoStartContainer.value !== origAutoStartContainer.value ||
+        hasLegacyRestartPolicy.value;
 
     const shouldBeDisabled = errors.value?.length || !hasResourceChanges || isApplyingChanges.value;
 
