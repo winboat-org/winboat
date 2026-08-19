@@ -1081,6 +1081,7 @@ const cpuCores = ref(2);
 const ramGB = ref(RECOMMENDED_VM_RAM_GB);
 const memoryInfo = ref<MemoryInfo>({ totalGB: 0, availableGB: 0 });
 const memoryInterval = ref<NodeJS.Timeout | null>(null);
+let memoryRefreshInFlight = false;
 const diskSpaceGB = ref(32);
 const gpuEnabled = ref(false);
 const gpuVramGB = ref(DEFAULT_GPU_VRAM_GB);
@@ -1126,9 +1127,9 @@ const linkableInstallSteps = [
 let installManager: InstallManager | null;
 
 onMounted(async () => {
-    memoryInfo.value = await getMemoryInfo();
-    memoryInterval.value = setInterval(async () => {
-        memoryInfo.value = await getMemoryInfo();
+    await refreshMemoryInfo();
+    memoryInterval.value = setInterval(() => {
+        void refreshMemoryInfo();
     }, 1000);
     console.log("Memory Info", memoryInfo.value);
 
@@ -1143,6 +1144,17 @@ onMounted(async () => {
     renderDevice.value = renderDevices.value[0]?.path || "";
     gpuVramGB.value = Math.min(gpuVramGB.value, gpuVramMaxGB.value);
 });
+
+async function refreshMemoryInfo() {
+    if (memoryRefreshInFlight) return;
+
+    memoryRefreshInFlight = true;
+    try {
+        memoryInfo.value = await getMemoryInfo();
+    } finally {
+        memoryRefreshInFlight = false;
+    }
+}
 
 onUnmounted(() => {
     if (memoryInterval.value) {
