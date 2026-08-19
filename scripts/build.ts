@@ -22,15 +22,24 @@ function buildMain() {
     return compileTs(mainPath);
 }
 
-FileSystem.rmSync(Path.join(__dirname, "..", "build"), {
-    recursive: true,
-    force: true,
-});
+async function build() {
+    FileSystem.rmSync(Path.join(__dirname, "..", "build"), {
+        recursive: true,
+        force: true,
+    });
 
-console.log(Chalk.blueBright("Transpiling renderer & main..."));
+    console.log(Chalk.blueBright("Transpiling renderer & main..."));
 
-Promise.allSettled([buildRenderer(), buildMain()]).then(() => {
+    await Promise.all([buildRenderer(), buildMain()]);
+
     console.log(
         Chalk.greenBright("Renderer & main successfully transpiled! (ready to be built with electron-builder)"),
     );
-});
+}
+
+try {
+    await build();
+} catch (error) {
+    console.error(Chalk.redBright("Failed to transpile renderer and main process:"), error);
+    process.exitCode = 1;
+}

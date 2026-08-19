@@ -21,6 +21,7 @@
         "artifactName": "${name}-${version}-${arch}.${ext}"
     },
     "files": [
+        "package.json",
         {
             "from": "build/main",
             "to": "main",
@@ -35,10 +36,7 @@
             "from": "src/main/static",
             "to": "static",
             "filter": ["**/*"]
-        },
-        "!build",
-        "!dist",
-        "!scripts"
+        }
     ],
     "extraResources": [
         {
