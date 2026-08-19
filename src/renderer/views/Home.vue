@@ -133,14 +133,7 @@
             :class="{ 'blur-sm opacity-50': !winboat.isOnline.value }"
         >
             <x-card class="bg-neutral-800/20 backdrop-brightness-150 backdrop-blur-xl flex flex-row gap-2 pl-0 my-0">
-                <apexchart
-                    class="translate-y-2"
-                    type="radialBar"
-                    :options="chartOptions"
-                    :series="[winboat.metrics.value.cpu.usage]"
-                    :width="120"
-                    :height="120"
-                />
+                <RadialGauge class="translate-y-2" :value="winboat.metrics.value.cpu.usage" />
                 <div>
                     <div class="flex flex-row gap-2 items-center mb-2">
                         <Icon class="size-8 text-violet-400" icon="solar:cpu-bold"></Icon>
@@ -155,14 +148,7 @@
                 </div>
             </x-card>
             <x-card class="bg-neutral-800/20 backdrop-brightness-150 backdrop-blur-xl flex flex-row gap-2 pl-0 my-0">
-                <apexchart
-                    class="translate-y-2"
-                    type="radialBar"
-                    :options="chartOptions"
-                    :series="[winboat.metrics.value.ram.percentage]"
-                    :width="120"
-                    :height="120"
-                />
+                <RadialGauge class="translate-y-2" :value="winboat.metrics.value.ram.percentage" />
                 <div>
                     <div class="flex flex-row gap-2 items-center mb-2">
                         <Icon class="size-8 text-violet-400" icon="game-icons:ram"></Icon>
@@ -177,14 +163,7 @@
                 </div>
             </x-card>
             <x-card class="bg-neutral-800/20 backdrop-brightness-150 backdrop-blur-xl flex flex-row gap-2 pl-0 my-0">
-                <apexchart
-                    class="translate-y-2"
-                    type="radialBar"
-                    :options="chartOptions"
-                    :series="[winboat.metrics.value.disk.percentage]"
-                    :width="120"
-                    :height="120"
-                />
+                <RadialGauge class="translate-y-2" :value="winboat.metrics.value.disk.percentage" />
                 <div>
                     <div class="flex flex-row gap-2 items-center mb-2">
                         <Icon class="size-8 text-violet-400" icon="carbon:vmdk-disk"></Icon>
@@ -209,6 +188,7 @@ import { ContainerStatus } from "../lib/containers/common";
 import { type ComposeConfig } from "../../types";
 import { WINDOWS_VERSIONS } from "../lib/constants";
 import { Icon } from "@iconify/vue";
+import RadialGauge from "../components/RadialGauge.vue";
 import { capitalizeFirstLetter } from "../utils/capitalize";
 import { openAnchorLink, openContainerLogFile } from "../utils/openLink";
 
@@ -225,59 +205,5 @@ onMounted(async () => {
     // Highlight the navitem for the home page, since by default no
     // navitem is highlighted and we can't use `toggled`
     document.querySelector<HTMLButtonElement>("x-navitem")?.click();
-});
-
-const chartOptions = ref({
-    chart: {
-        type: "radialBar",
-        offsetY: -20,
-        sparkline: {
-            enabled: true,
-        },
-        width: 100,
-        height: 100,
-    },
-    plotOptions: {
-        radialBar: {
-            startAngle: -135,
-            endAngle: 135,
-            track: {
-                background: "#18181b", // Unfilled section color
-                strokeWidth: "97%",
-                margin: 5,
-                // dropShadow: {
-                //     enabled: true,
-                //     top: 2,
-                //     left: 0,
-                //     color: '#444',
-                //     opacity: 1,
-                //     blur: 2
-                // }
-            },
-            dataLabels: {
-                name: {
-                    show: false,
-                },
-                value: {
-                    offsetY: 2,
-                    fontSize: "12px",
-                    color: "#FFFFFF",
-                    formatter: function (val: number) {
-                        return val.toFixed(1) + "%"; // Fixed to 1 decimal place
-                    },
-                },
-            },
-        },
-    },
-    grid: {
-        padding: {
-            top: -10,
-        },
-    },
-    fill: {
-        type: "solid", // Switched from gradient to solid
-        colors: ["#A78AF9"], // Nice purple for the filled section
-    },
-    labels: ["Average Results"],
 });
 </script>
