@@ -254,7 +254,7 @@
 
 <script setup lang="ts">
 import { Icon } from "@iconify/vue";
-import { computed, onMounted, ref, useTemplateRef, watch, nextTick } from "vue";
+import { computed, nextTick, onMounted, onUnmounted, ref, useTemplateRef, watch, type WatchHandle } from "vue";
 import { Winboat } from "../lib/winboat";
 import { ContainerStatus } from "../lib/containers/common";
 import { type WinApp } from "../../types";
@@ -286,6 +286,12 @@ const currentAppForm = ref<WinApp>({
     Icon: "",
     Source: "",
 });
+// Created after an await in onMounted, so Vue won't stop these automatically.
+let stopOnlineWatch: WatchHandle | null = null;
+let stopCustomAppPathWatch: WatchHandle | null = null;
+let unmounted = false;
+
+const hideContextMenu = () => contextMenuRef.value?.hide();
 
 const AllSources = computed(() => {
     let sourceList: Record<string, string> = {};
@@ -330,7 +336,9 @@ onMounted(async () => {
 
     await refreshApps();
 
-    watch(winboat.isOnline, async (newVal, _) => {
+    if (unmounted) return;
+
+    stopOnlineWatch = watch(winboat.isOnline, async newVal => {
         if (newVal) {
             await refreshApps();
             console.log("Apps list: ", apps.value);
@@ -338,13 +346,20 @@ onMounted(async () => {
     });
 
     // Fetch icon for custom app path
-    watch(customAppPath, async (newVal, oldVal) => {
+    stopCustomAppPathWatch = watch(customAppPath, async (newVal, oldVal) => {
         await debouncedFetchIcon(newVal, oldVal);
     });
 
-    const onScroll = () => contextMenuRef.value?.hide();
-    window.addEventListener("scroll", onScroll, true);
-    window.addEventListener("resize", onScroll);
+    window.addEventListener("scroll", hideContextMenu, true);
+    window.addEventListener("resize", hideContextMenu);
+});
+
+onUnmounted(() => {
+    unmounted = true;
+    stopOnlineWatch?.();
+    stopCustomAppPathWatch?.();
+    window.removeEventListener("scroll", hideContextMenu, true);
+    window.removeEventListener("resize", hideContextMenu);
 });
 
 async function refreshApps() {
