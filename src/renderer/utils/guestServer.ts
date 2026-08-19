@@ -1,9 +1,9 @@
 import { GUEST_TOKEN_PATH } from "../lib/constants";
+import { getAppPath } from "../lib/electron";
 
 const fs: typeof import("fs") = require("node:fs");
 const path: typeof import("path") = require("node:path");
 const process: typeof import("process") = require("node:process");
-const remote: typeof import("@electron/remote") = require("@electron/remote");
 
 /**
  * Base directory of the bundled guest server resources. In a packaged app this
@@ -11,9 +11,9 @@ const remote: typeof import("@electron/remote") = require("@electron/remote");
  * `guest_server/dist`. Both hold the same layout: `oem/` and `update/`.
  */
 export function guestServerResourceDir(): string {
-    return remote.app.isPackaged
+    return import.meta.env.PROD
         ? path.join(process.resourcesPath, "guest_server")
-        : path.join(remote.app.getAppPath(), "..", "..", "guest_server", "dist");
+        : path.join(getAppPath(), "..", "..", "guest_server", "dist");
 }
 
 /** The OEM payload that gets copied into the guest's `C:\OEM` mount at install. */

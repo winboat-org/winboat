@@ -500,8 +500,7 @@ import {
     RECOMMENDED_VM_RAM_GB,
     DEFAULT_GPU_VRAM_GB,
 } from "../lib/constants";
-const { app }: typeof import("@electron/remote") = require("@electron/remote");
-const electron: typeof import("electron") = require("electron").remote || require("@electron/remote");
+import { exitApp, showOpenDialog } from "../lib/electron";
 const os: typeof import("os") = require("node:os");
 
 // For Resources
@@ -682,17 +681,15 @@ async function saveCompose() {
  * Opens a dialog to select a folder to share with Windows
  */
 function selectSharedFolder() {
-    electron.dialog
-        .showOpenDialog({
-            title: "Select Folder to Share",
-            properties: ["openDirectory"],
-            defaultPath: sharedFolderPath.value || os.homedir(),
-        })
-        .then(result => {
-            if (!result.canceled && result.filePaths.length > 0) {
-                sharedFolderPath.value = result.filePaths[0];
-            }
-        });
+    showOpenDialog({
+        title: "Select Folder to Share",
+        properties: ["openDirectory"],
+        defaultPath: sharedFolderPath.value || os.homedir(),
+    }).then(result => {
+        if (!result.canceled && result.filePaths.length > 0) {
+            sharedFolderPath.value = result.filePaths[0];
+        }
+    });
 }
 
 /**
@@ -818,7 +815,7 @@ async function resetWinboat() {
 
     isResettingWinboat.value = true;
     await winboat.resetWinboat();
-    app.exit();
+    exitApp();
 }
 
 // Reactivity utterly fails here, so we use this function to

@@ -974,9 +974,9 @@ import {
     shouldCheckNvidiaContainerSupport,
     type RenderDevice,
 } from "../lib/gpu";
+import { showOpenDialog } from "../lib/electron";
 
 const path: typeof import("path") = require("node:path");
-const electron: typeof import("electron") = require("electron").remote || require("@electron/remote");
 const fs: typeof import("fs") = require("node:fs");
 const os: typeof import("os") = require("node:os");
 const checkDiskSpace: typeof import("check-disk-space").default = require("check-disk-space").default;
@@ -1284,26 +1284,24 @@ const passwordErrors = computed(() => {
 });
 
 function selectIsoFile() {
-    electron.dialog
-        .showOpenDialog({
-            title: "Select ISO File",
-            filters: [
-                {
-                    name: "ISO Files",
-                    extensions: ["iso"],
-                },
-            ],
-            properties: ["openFile"],
-        })
-        .then(result => {
-            if (!result.canceled && result.filePaths.length > 0) {
-                customIsoPath.value = result.filePaths[0];
-                customIsoFileName.value = path.basename(result.filePaths[0]);
-                windowsLanguage.value = "English"; // Language can't be custom
-                windowsVersion.value = "custom";
-                console.log("ISO path updated:", customIsoPath.value);
-            }
-        });
+    showOpenDialog({
+        title: "Select ISO File",
+        filters: [
+            {
+                name: "ISO Files",
+                extensions: ["iso"],
+            },
+        ],
+        properties: ["openFile"],
+    }).then(result => {
+        if (!result.canceled && result.filePaths.length > 0) {
+            customIsoPath.value = result.filePaths[0];
+            customIsoFileName.value = path.basename(result.filePaths[0]);
+            windowsLanguage.value = "English"; // Language can't be custom
+            windowsVersion.value = "custom";
+            console.log("ISO path updated:", customIsoPath.value);
+        }
+    });
 }
 
 function deselectIsoFile() {
@@ -1314,19 +1312,17 @@ function deselectIsoFile() {
 }
 
 function selectInstallFolder() {
-    electron.dialog
-        .showOpenDialog({
-            title: "Select Install Folder",
-            properties: ["openDirectory", "createDirectory"],
-        })
-        .then(result => {
-            if (!result.canceled && result.filePaths.length > 0) {
-                const selectedPath = result.filePaths[0];
-                const finalPath = path.join(selectedPath, "winboat");
-                console.log("Install path selected:", finalPath);
-                installFolder.value = finalPath;
-            }
-        });
+    showOpenDialog({
+        title: "Select Install Folder",
+        properties: ["openDirectory", "createDirectory"],
+    }).then(result => {
+        if (!result.canceled && result.filePaths.length > 0) {
+            const selectedPath = result.filePaths[0];
+            const finalPath = path.join(selectedPath, "winboat");
+            console.log("Install path selected:", finalPath);
+            installFolder.value = finalPath;
+        }
+    });
 }
 
 const installFolderErrors = computedAsync(async () => {
@@ -1371,17 +1367,15 @@ const installFolderDiskSpaceGB = computedAsync(async () => {
 });
 
 function selectSharedFolder() {
-    electron.dialog
-        .showOpenDialog({
-            title: "Select Folder to Share",
-            properties: ["openDirectory"],
-            defaultPath: sharedFolderPath.value || os.homedir(),
-        })
-        .then(result => {
-            if (!result.canceled && result.filePaths.length > 0) {
-                sharedFolderPath.value = result.filePaths[0];
-            }
-        });
+    showOpenDialog({
+        title: "Select Folder to Share",
+        properties: ["openDirectory"],
+        defaultPath: sharedFolderPath.value || os.homedir(),
+    }).then(result => {
+        if (!result.canceled && result.filePaths.length > 0) {
+            sharedFolderPath.value = result.filePaths[0];
+        }
+    });
 }
 
 function install() {
