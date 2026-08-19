@@ -2,6 +2,9 @@ import { app, BrowserWindow, ipcMain, session, dialog, shell, type OpenDialogOpt
 import { readFileSync, writeFileSync } from "fs";
 import { join } from "path";
 
+// Avoid a dedicated network utility process.
+app.commandLine.appendSwitch("enable-features", "NetworkServiceInProcess2");
+
 // Window Constants
 const WINDOW_MIN_WIDTH = 1280;
 const WINDOW_MIN_HEIGHT = 800;
