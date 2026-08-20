@@ -1,3 +1,4 @@
+import type { Specs } from "../../types";
 import { getFreeRDP } from "../utils/getFreeRDP";
 import { ContainerSpecs } from "./containers/common";
 import { MIN_HOST_RAM_GB } from "./constants";

@@ -36,14 +36,11 @@
         "vue-tsc": "^3.2.4"
     },
     "dependencies": {
-        "@electron/remote": "^2.1.3",
         "@iconify/vue": "^5.0.0",
         "@vueuse/core": "^14.2.0",
         "@vueuse/motion": "^3.0.3",
-        "apexcharts": "^5.3.6",
         "check-disk-space": "^3.4.0",
         "consola": "^3.4.2",
-        "electron-store": "^11.0.2",
         "form-data": "^4.0.5",
         "jimp": "1.6.0",
         "marked": "^17.0.1",
@@ -54,7 +51,6 @@
         "usb": "2.18.0",
         "vue": "^3.5.27",
         "vue-router": "^5.0.2",
-        "vue3-apexcharts": "^1.10.0",
         "xel": "^0.40.3",
         "yaml": "^2.8.2"
     },

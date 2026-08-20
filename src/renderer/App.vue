@@ -20,7 +20,6 @@
 
         <!-- Titlebar -->
         <x-titlebar
-            @minimize="handleMinimize()"
             @buttonclick="handleTitleBarEvent"
             class="backdrop-blur-xl bg-neutral-900/50"
         >
@@ -167,7 +166,7 @@ import { WinboatConfig } from "./lib/config";
 import { USBManager } from "./lib/usbmanager";
 import { NOVNC_URL } from "./lib/constants";
 import { performAutoMigrations } from "./lib/migrate";
-const { BrowserWindow }: typeof import("@electron/remote") = require("@electron/remote");
+import { performWindowAction } from "./lib/electron";
 const os: typeof import("os") = require("node:os");
 
 const $router = useRouter();
@@ -225,26 +224,17 @@ onMounted(async () => {
     );
 });
 
-function handleMinimize() {
-    console.log("Minimize");
-    window.electronAPI.minimizeWindow();
-}
-
 function handleTitleBarEvent(e: CustomEvent) {
     console.log("TitleBarEvt", e);
     switch (e.detail) {
         case "close":
-            BrowserWindow.getFocusedWindow()!.close();
+            performWindowAction("close");
             break;
         case "maximize":
-            if (BrowserWindow.getFocusedWindow()!.isMaximized()) {
-                BrowserWindow.getFocusedWindow()!.unmaximize();
-            } else {
-                BrowserWindow.getFocusedWindow()!.maximize();
-            }
+            performWindowAction("toggle-maximize");
             break;
         case "minimize":
-            BrowserWindow.getFocusedWindow()!.minimize();
+            performWindowAction("minimize");
             break;
     }
 }

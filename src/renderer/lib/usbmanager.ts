@@ -3,11 +3,11 @@ import { type Ref, ref, watch } from "vue";
 import { logger, Winboat } from "./winboat";
 import { WinboatConfig } from "./config";
 import { assert } from "@vueuse/core";
+import { getAppPath } from "./electron";
 
 const { usb, getDeviceList }: typeof import("usb") = require("usb");
 const fs: typeof import("node:fs") = require("node:fs");
 const { execFileSync }: typeof import("node:child_process") = require("node:child_process");
-const remote: typeof import("@electron/remote") = require("@electron/remote");
 const path: typeof import("node:path") = require("node:path");
 
 type LinuxDeviceDatabase = Record<string, { name: string; devices: Record<string, string> }>;
@@ -431,9 +431,9 @@ function readLinuxDeviceDatabase(): LinuxDeviceDatabase {
 
     // Fallback to static file if the distro doesn't ship with usb.ids
     if (!fs.existsSync(dbFilePath)) {
-        dbFilePath = remote.app.isPackaged
+        dbFilePath = import.meta.env.PROD
             ? path.join(process.resourcesPath, "data", "usb.ids") // For packaged app
-            : path.join(remote.app.getAppPath(), "..", "..", "data", "usb.ids"); // For dev mode
+            : path.join(getAppPath(), "..", "..", "data", "usb.ids"); // For dev mode
     }
 
     logger.info(`Final USB database file path: ${dbFilePath}`);

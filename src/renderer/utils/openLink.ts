@@ -1,11 +1,11 @@
-const { shell }: typeof import("@electron/remote") = require("@electron/remote");
 import { CONTAINER_LOG_FILE } from "../lib/constants";
+import { openExternal, openPath, showItemInFolder } from "../lib/electron";
 
 export function openLink(link: string) {
     if (link.startsWith("http")) {
-        shell.openExternal(link);
+        return openExternal(link);
     } else {
-        shell.showItemInFolder(link);
+        return showItemInFolder(link);
     }
 }
 
@@ -19,5 +19,5 @@ export function openAnchorLink(e: MouseEvent) {
 }
 
 export function openContainerLogFile() {
-    shell.openPath(CONTAINER_LOG_FILE);
+    return openPath(CONTAINER_LOG_FILE);
 }

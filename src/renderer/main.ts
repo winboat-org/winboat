@@ -5,7 +5,7 @@ import { MotionPlugin } from "@vueuse/motion";
 import "./index.css";
 import { autoScroll } from "./directives/autoscroll";
 import { DEFAULT_HOMEBREW_DIR } from "./lib/constants";
-import VueApexCharts from "vue3-apexcharts";
+import { initializeAppPath } from "./lib/electron";
 
 const process: typeof import("process") = require("node:process");
 
@@ -17,9 +17,12 @@ const process: typeof import("process") = require("node:process");
  */
 process.env.PATH && (process.env.PATH += `:${DEFAULT_HOMEBREW_DIR}`);
 
+if (import.meta.env.DEV) {
+    await initializeAppPath();
+}
+
 createApp(App)
     .directive("auto-scroll", autoScroll)
     .use(router)
     .use(MotionPlugin)
-    .use(VueApexCharts as any) // TODO: See https://github.com/apexcharts/vue3-apexcharts/issues/141
     .mount("#app");
