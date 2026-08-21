@@ -1,5 +1,8 @@
-*THIS IS A FORK JUST TO BUILD PACKAGES OF THE EXPERIMENTAL BRANCH OF WINBOAT... ISSUES CAN'T BE REPORTED UPSTREAM*
--this is not endorsed by any means with the original develovers, every piece of code is from the original devs-
+# Disclaimer
+
+*This is a fork. It's meant to build the experimental GPU accelaration testing. The issues arising from builds in this repository will not get you any responses if you were to create an issue/report it to the main developers, and I do not endorse you doing so.*
+
+The code in here hasn't been tampered with, solely modified just to get a build working. Please follow the actual main organization and repositories if you want to modify the source code.
 
 <div align="left">
   <table>
