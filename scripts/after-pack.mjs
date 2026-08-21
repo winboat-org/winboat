@@ -1,8 +1,28 @@
+import { createHash } from "node:crypto";
 import { createReadStream, createWriteStream } from "node:fs";
 import { rm, stat, writeFile } from "node:fs/promises";
 import Path from "node:path";
 import { pipeline } from "node:stream/promises";
 import { constants, createBrotliCompress } from "node:zlib";
+import { Arch } from "electron-builder";
+import { winboatElectron } from "./electron-release.mjs";
+
+async function verifyElectronExecutable(context) {
+    if (context.electronPlatformName !== "linux" || context.arch !== Arch.x64) {
+        throw new Error("The WinBoat Electron fork currently supports Linux x64 only.");
+    }
+
+    const executable = Path.join(context.appOutDir, context.packager.executableName);
+    const hash = createHash("sha256");
+
+    for await (const chunk of createReadStream(executable)) {
+        hash.update(chunk);
+    }
+
+    if (hash.digest("hex") !== winboatElectron.executableSha256) {
+        throw new Error("The packaged executable does not match the published WinBoat Electron fork.");
+    }
+}
 
 async function compressChromiumLicenses(appOutDir) {
     const input = Path.join(appOutDir, "LICENSES.chromium.html");
@@ -39,6 +59,8 @@ async function compressChromiumLicenses(appOutDir) {
 }
 
 export default async function afterPack(context) {
+    await verifyElectronExecutable(context);
+
     for (const handler of ["chrome_crashpad_handler", "chrome_crashpad_handler.exe"]) {
         await rm(Path.join(context.appOutDir, handler), { force: true });
     }

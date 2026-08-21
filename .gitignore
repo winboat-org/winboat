@@ -1,6 +1,7 @@
 node_modules
 dist
 build
+.cache/electron/
 
 .vscode
 .idea

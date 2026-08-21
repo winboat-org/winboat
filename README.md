@@ -95,6 +95,10 @@ You can download the latest Linux builds under the [Releases](https://github.com
 - Build the app and the guest server using `bun run build:linux-gs`
 - You can now find the built app under `dist` with an AppImage and an Unpacked variant
 
+Linux x64 release builds use the [WinBoat Electron fork](https://github.com/winboat-org/electron/releases/tag/winboat-v43.2.0-1).
+The build downloads the pinned release archive, verifies its SHA-256 value, and stores it in `.cache/electron`.
+Set `WINBOAT_ELECTRON_ZIP` to a verified local copy of the same archive for an offline build.
+
 ## Running WinBoat in development mode
 
 - Make sure you meet the [prerequisites](#prerequisites)
