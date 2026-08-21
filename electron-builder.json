@@ -5,6 +5,8 @@
         "output": "dist"
     },
     "publish": null,
+    "electronVersion": "43.2.0",
+    "electronDist": ".cache/electron/electron-winboat-v43.2.0-1-linux-x64.zip",
     "electronLanguages": ["en-US"],
     "afterPack": "scripts/after-pack.mjs",
     "nsis": {

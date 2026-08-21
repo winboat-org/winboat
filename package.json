@@ -10,8 +10,9 @@
     },
     "scripts": {
         "dev": "bun scripts/dev-server.ts",
+        "prepare:electron": "bun scripts/prepare-electron.mjs",
         "build:gs": "bash build-guest-server.sh",
-        "build:linux-gs": "bash build-guest-server.sh && bun scripts/build.ts && electron-builder --linux"
+        "build:linux-gs": "bun run prepare:electron && bash build-guest-server.sh && bun scripts/build.ts && electron-builder --linux --x64"
     },
     "repository": "https://github.com/TibixDev/winboat",
     "author": {
@@ -26,7 +27,7 @@
         "autoprefixer": "^10.4.24",
         "chalk": "^5.6.2",
         "chokidar": "^5.0.0",
-        "electron": "^43.2.0",
+        "electron": "43.2.0",
         "electron-builder": "^26.7.0",
         "postcss": "^8.5.6",
         "prettier": "3.8.1",
