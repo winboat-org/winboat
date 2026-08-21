@@ -1,6 +1,6 @@
 {
     "name": "winboat",
-    "version": "1.0.5",
+    "version": "1.0.6",
     "description": "Windows for Penguins",
     "type": "module",
     "main": "main/main.js",
@@ -38,7 +38,6 @@
     "dependencies": {
         "@iconify/vue": "^5.0.0",
         "@vueuse/core": "^14.2.0",
-        "@vueuse/motion": "^3.0.3",
         "check-disk-space": "^3.4.0",
         "consola": "^3.4.2",
         "form-data": "^4.0.5",

@@ -5,6 +5,9 @@ import { join } from "path";
 // Avoid a dedicated network utility process.
 app.commandLine.appendSwitch("enable-features", "NetworkServiceInProcess2");
 
+// Match the only Chromium locale included in production packages.
+app.commandLine.appendSwitch("lang", "en-US");
+
 // Window Constants
 const WINDOW_MIN_WIDTH = 1280;
 const WINDOW_MIN_HEIGHT = 800;
