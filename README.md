@@ -1,4 +1,4 @@
-*THIS IS A FORK JUST TO BUILD PACKAGES OF THE EXPERIMENTAL BRANCH OF WINBOAT... ISSUES CAN BE REPORTED UPSTREAM*
+*THIS IS A FORK JUST TO BUILD PACKAGES OF THE EXPERIMENTAL BRANCH OF WINBOAT... ISSUES CAN'T BE REPORTED UPSTREAM*
 -this is not endorsed by any means with the original develovers, every piece of code is from the original devs-
 
 <div align="left">
