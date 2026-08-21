@@ -5,6 +5,8 @@
         "output": "dist"
     },
     "publish": null,
+    "electronLanguages": ["en-US"],
+    "afterPack": "scripts/after-pack.mjs",
     "nsis": {
         "oneClick": false,
         "perMachine": false,
