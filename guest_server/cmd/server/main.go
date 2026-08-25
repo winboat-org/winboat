@@ -14,6 +14,8 @@ import (
 	"github.com/shirou/gopsutil/cpu"
 	"github.com/shirou/gopsutil/disk"
 	"github.com/shirou/gopsutil/mem"
+
+	"winboat-guest/internal/guestauth"
 )
 
 var (
@@ -143,6 +145,10 @@ func getIcon(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "path is required", http.StatusBadRequest)
 		return
 	}
+	if !isSafeIconPath(path) {
+		http.Error(w, "invalid path", http.StatusBadRequest)
+		return
+	}
 
 	output, err := executePowerShellScript("scripts\\get-icon.ps1", false, "-path", path)
 	if err != nil {
@@ -156,17 +162,36 @@ func getIcon(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
+	token, err := guestauth.LoadToken()
+	if err != nil {
+		log.Fatalf("Failed to load guest token: %v", err)
+	}
+	if token == "" {
+		log.Fatal("Failed to load guest token: token is empty")
+	}
+
+	auth := guestauth.Middleware(token)
+	protected := func(handler http.HandlerFunc) http.Handler {
+		return auth(handler)
+	}
+
 	r := mux.NewRouter()
-	r.HandleFunc("/apps", getApps).Methods("GET")
+	r.Handle("/apps", protected(getApps)).Methods("GET")
 	r.HandleFunc("/health", getHealth).Methods("GET")
-	r.HandleFunc("/provisioning/graphics/status", getGraphicsProvisioningStatus).Methods("GET")
-	r.HandleFunc("/version", getVersion).Methods("GET")
-	r.HandleFunc("/metrics", getMetrics).Methods("GET")
-	r.HandleFunc("/rdp/status", getRdpConnectedStatus).Methods("GET")
-	r.HandleFunc("/get-icon", getIcon).Methods("POST")
+	r.Handle("/provisioning/graphics/status", protected(getGraphicsProvisioningStatus)).Methods("GET")
+	r.Handle("/version", protected(getVersion)).Methods("GET")
+	r.Handle("/metrics", protected(getMetrics)).Methods("GET")
+	r.Handle("/rdp/status", protected(getRdpConnectedStatus)).Methods("GET")
+	r.Handle("/get-icon", protected(getIcon)).Methods("POST")
+
+	srv := &http.Server{
+		Addr:              ":7148",
+		Handler:           r,
+		ReadHeaderTimeout: 10 * time.Second,
+	}
 
 	log.Println("Starting WinBoat Guest Server on :7148...")
-	if err := http.ListenAndServe(":7148", r); err != nil {
+	if err := srv.ListenAndServe(); err != nil {
 		log.Fatal("Server failed: ", err)
 	}
 }

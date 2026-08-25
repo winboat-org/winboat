@@ -374,8 +374,8 @@ try {
         # Check if the (default) value exists and is not empty
         if ($entry.PSObject.Properties['(default)'] -and $entry.'(default)') {
             try {
-                # Expand environment variables and remove surrounding quotes
-                $pathValue = $ExecutionContext.InvokeCommand.ExpandString($entry.'(default)'.Trim('"'))
+                # Expand %VAR% environment variables without evaluating PowerShell expressions
+                $pathValue = [System.Environment]::ExpandEnvironmentVariables($entry.'(default)'.Trim('"'))
             } catch { } # Ignore errors expanding variables
         }
 
@@ -454,9 +454,9 @@ if ($lnkFiles) {
                     try {
                         $link = $shell.CreateShortcut($lnk.FullName)
                         $rawTarget = $link.TargetPath
-                        # Resolve path if contains environment variables
+                        # Expand %VAR% environment variables without evaluating PowerShell expressions
                         if ($rawTarget) {
-                            $target = try { $ExecutionContext.InvokeCommand.ExpandString($rawTarget) } catch { $rawTarget }
+                            $target = try { [System.Environment]::ExpandEnvironmentVariables($rawTarget) } catch { $rawTarget }
                             
                             # Handle case where SYSTEM user resolves paths to SYSTEM profile instead of actual user
                             $systemProfilePath = "C:\WINDOWS\system32\config\systemprofile"
@@ -635,5 +635,4 @@ if ($scoopDir) {
 # This is the only output sent to the standard output stream.
 
 $apps | ConvertTo-Json -Depth 5 -Compress
-
 

@@ -265,6 +265,7 @@ import { debounce } from "../utils/debounce";
 import { Jimp, JimpMime } from "jimp";
 import { WinboatConfig } from "../lib/config";
 import { WINBOAT_API_URL } from "../lib/constants";
+import { guestAuthHeaders } from "../utils/guestServer";
 const nodeFetch: typeof import("node-fetch").default = require("node-fetch");
 const FormData: typeof import("form-data") = require("form-data");
 
@@ -380,6 +381,7 @@ const debouncedFetchIcon = debounce(async (newVal: string, oldVal: string) => {
         formData.append("path", newVal);
         const iconRes = await nodeFetch(`${WINBOAT_API_URL}/get-icon`, {
             method: "POST",
+            headers: guestAuthHeaders(),
             body: formData as any,
         });
         const icon = await iconRes.text();

@@ -1,4 +1,4 @@
-// Package guestauth authenticates Guest Server update requests with a shared
+// Package guestauth authenticates Guest Server requests with a shared
 // bearer token and loopback-only Host headers to prevent DNS rebinding.
 package guestauth
 
@@ -11,7 +11,7 @@ import (
 	"strings"
 )
 
-// TokenPath returns the shared token path, one level above the updater.
+// TokenPath returns the shared token path, one level above the service binary.
 func TokenPath() (string, error) {
 	exe, err := os.Executable()
 	if err != nil {

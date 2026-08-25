@@ -9,7 +9,7 @@ import {
     WINBOAT_DIR,
 } from "./constants";
 import { createLogger } from "../utils/log";
-import { guestServerOemDir } from "../utils/guestServer";
+import { guestAuthHeaders, guestServerOemDir } from "../utils/guestServer";
 import { createNanoEvents, type Emitter } from "nanoevents";
 import { Winboat } from "./winboat";
 import { ContainerManager } from "./containers/container";
@@ -369,6 +369,7 @@ export class InstallManager {
             let response;
             try {
                 response = await nodeFetch(GRAPHICS_PROVISIONING_URL, {
+                    headers: guestAuthHeaders(),
                     signal: AbortSignal.timeout(5000),
                 });
             } catch {

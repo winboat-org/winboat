@@ -27,9 +27,9 @@ export function guestServerUpdateZipPath(): string {
 }
 
 /**
- * Authorization headers for Guest Server update requests.
+ * Authorization headers for requests to the guest services.
  */
-export function guestUpdaterAuthHeaders(): Record<string, string> {
+export function guestAuthHeaders(): Record<string, string> {
     try {
         const token = fs.readFileSync(GUEST_TOKEN_PATH, "utf8").trim();
         return { Authorization: `Bearer ${token}` };

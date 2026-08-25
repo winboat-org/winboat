@@ -5,7 +5,7 @@ import type { ComposeConfig, CustomAppCallbacks, GuestServerVersion, Metrics, Wi
 import { AppIcons } from "../data/appicons";
 import { InternalApps } from "../data/internalapps";
 import { getFreeRDP } from "../utils/getFreeRDP";
-import { guestServerUpdateZipPath, guestUpdaterAuthHeaders } from "../utils/guestServer";
+import { guestAuthHeaders, guestServerUpdateZipPath } from "../utils/guestServer";
 import { setIntervalImmediately } from "../utils/interval";
 import { createLogger } from "../utils/log";
 import { openLink } from "../utils/openLink";
@@ -113,7 +113,7 @@ class AppManager {
     }
 
     async updateAppCache(options: { forceRead?: boolean } = {}) {
-        const res = await nodeFetch(`${WINBOAT_API_URL}/apps`);
+        const res = await nodeFetch(`${WINBOAT_API_URL}/apps`, { headers: guestAuthHeaders() });
         const newApps = (await res.json()) as WinApp[];
         newApps.push(...presetApps, ...this.#wbConfig!.config.customApps);
 
@@ -418,13 +418,19 @@ export class Winboat {
     }
 
     async getMetrics() {
-        const res = await nodeFetch(`${WINBOAT_API_URL}/metrics`, { signal: AbortSignal.timeout(FETCH_TIMEOUT) });
+        const res = await nodeFetch(`${WINBOAT_API_URL}/metrics`, {
+            headers: guestAuthHeaders(),
+            signal: AbortSignal.timeout(FETCH_TIMEOUT),
+        });
         const metrics = (await res.json()) as Metrics;
         return metrics;
     }
 
     async getRDPConnectedStatus() {
-        const res = await nodeFetch(`${WINBOAT_API_URL}/rdp/status`, { signal: AbortSignal.timeout(FETCH_TIMEOUT) });
+        const res = await nodeFetch(`${WINBOAT_API_URL}/rdp/status`, {
+            headers: guestAuthHeaders(),
+            signal: AbortSignal.timeout(FETCH_TIMEOUT),
+        });
         const status = (await res.json()) as { rdpConnected: boolean };
         return status.rdpConnected;
     }
@@ -772,7 +778,7 @@ export class Winboat {
 
     async checkVersionAndUpdateGuestServer() {
         // 1. Compare the running Guest Server version with the bundled app version.
-        const versionRes = await nodeFetch(`${WINBOAT_API_URL}/version`);
+        const versionRes = await nodeFetch(`${WINBOAT_API_URL}/version`, { headers: guestAuthHeaders() });
         const version = (await versionRes.json()) as GuestServerVersion;
         const appVersion = import.meta.env.VITE_APP_VERSION;
 
@@ -794,7 +800,7 @@ export class Winboat {
             const res = await nodeFetch(`${WINBOAT_UPDATE_URL}/update`, {
                 method: "POST",
                 headers: {
-                    ...guestUpdaterAuthHeaders(),
+                    ...guestAuthHeaders(),
                     "Content-Type": "application/octet-stream",
                 },
                 body: fs.createReadStream(zipPath),
