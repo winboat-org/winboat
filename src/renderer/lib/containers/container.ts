@@ -7,6 +7,10 @@ const path: typeof import("node:path") = require("node:path");
 
 export const containerLogger = createLogger(path.join(WINBOAT_DIR, "container.log"));
 
+export function redactComposeSecrets(content: string): string {
+    return content.replace(/^(\s*PASSWORD:\s*).*$/gim, "$1<redacted>");
+}
+
 export type ComposeDirection = "up" | "down";
 export type ComposeArguments = "--no-start";
 export type ContainerAction = "start" | "stop" | "pause" | "unpause";

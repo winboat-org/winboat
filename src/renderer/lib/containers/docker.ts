@@ -10,6 +10,7 @@ import {
     containerLogger,
     ContainerManager,
     ContainerStatus,
+    redactComposeSecrets,
 } from "./container";
 import YAML from "yaml";
 import { execFileAsync, stringifyExecFile } from "../exec-helper";
@@ -40,7 +41,7 @@ export class DockerContainer extends ContainerManager {
         fs.writeFileSync(this.composeFilePath, composeContent, { encoding: "utf-8" });
 
         containerLogger.info(`Wrote to compose file at: ${this.composeFilePath}`);
-        containerLogger.info(`Compose file content: ${JSON.stringify(composeContent, null, 2)}`);
+        containerLogger.info(`Compose file content:\n${redactComposeSecrets(composeContent)}`);
     }
 
     async compose(direction: ComposeDirection, extraArgs: ComposeArguments[] = []): Promise<void> {
