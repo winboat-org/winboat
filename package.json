@@ -1,6 +1,6 @@
 {
     "name": "winboat",
-    "version": "0.9.0",
+    "version": "0.9.1",
     "description": "Windows for Penguins",
     "type": "module",
     "main": "main/main.js",
@@ -26,8 +26,8 @@
         "autoprefixer": "^10.4.20",
         "chalk": "^4.1.2",
         "chokidar": "^3.6.0",
-        "electron": "^35.1.5",
-        "electron-builder": "^26.0.12",
+        "electron": "^44.0.0",
+        "electron-builder": "^26.15.3",
         "postcss": "^8.5.1",
         "prettier": "3.6.2",
         "tailwindcss": "^3.4.17",
