@@ -98,8 +98,8 @@ function Get-IconBase64FromFile {
     }
 }
 
-# Expand environment variables if any (e.g., %WINDIR%) without introducing noise
-$expandedPath = try { $ExecutionContext.InvokeCommand.ExpandString($Path) } catch { $Path }
+# Expand %VAR% environment variables without evaluating PowerShell expressions
+$expandedPath = try { [System.Environment]::ExpandEnvironmentVariables($Path) } catch { $Path }
 
 # Resolve .lnk shortcuts first if the given path ends with .lnk
 $candidatePath = $expandedPath

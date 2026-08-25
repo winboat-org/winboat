@@ -14,6 +14,7 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
+	"unicode"
 
 	"github.com/gorilla/mux"
 	"github.com/rs/cors"
@@ -156,6 +157,13 @@ func getRdpConnectedStatus(w http.ResponseWriter, r *http.Request) {
 	w.Write(jsonResponse)
 }
 
+func isSafeIconPath(path string) bool {
+	if strings.HasPrefix(path, `\\`) || strings.HasPrefix(path, "//") {
+		return false
+	}
+	return !strings.ContainsFunc(path, unicode.IsControl)
+}
+
 func applyUpdate(w http.ResponseWriter, r *http.Request) {
 	// Verify password
 	expectedHash, err := getSecureRegKey(AUTHKEY_HASH_REG)
@@ -257,6 +265,10 @@ func getIcon(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "path is required", http.StatusBadRequest)
 		return
 	}
+	if !isSafeIconPath(path) {
+		http.Error(w, "invalid path", http.StatusBadRequest)
+		return
+	}
 
 	cmd := exec.Command("powershell", "-ExecutionPolicy", "Bypass", "-File", "scripts\\get-icon.ps1", "-path", path)
 	output, err := cmd.Output()
@@ -338,9 +350,14 @@ func main() {
 	r.HandleFunc("/get-icon", getIcon).Methods("POST")
 	r.HandleFunc("/auth/set-hash", setAuthHash).Methods("POST")
 	handler := cors.Default().Handler(r)
+	server := &http.Server{
+		Addr:              ":7148",
+		Handler:           handler,
+		ReadHeaderTimeout: 10 * time.Second,
+	}
 
 	log.Println("Starting WinBoat Guest Server on :7148...")
-	if err := http.ListenAndServe(":7148", handler); err != nil {
+	if err := server.ListenAndServe(); err != nil {
 		log.Fatal("Server failed: ", err)
 	}
 }
