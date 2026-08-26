@@ -3,6 +3,7 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"log"
 	"net/http"
@@ -22,6 +23,13 @@ var (
 	Version        = "0.0.0"
 	CommitHash     = "n/a"
 	BuildTimestamp = "n/a"
+)
+
+const (
+	appsRequestTimeout        = 30 * time.Second
+	projectedAppsTimeout      = 10 * time.Second
+	maxAppsResponseBytes      = 8 << 20
+	maxProjectedResponseBytes = 256 << 10
 )
 
 type Metrics struct {
@@ -46,9 +54,40 @@ type RDPStatusResponse struct {
 }
 
 func getApps(w http.ResponseWriter, r *http.Request) {
-	output, err := executePowerShellScript(".\\scripts\\apps.ps1", true)
+	query, err := parseAppsQuery(r.URL.Query())
 	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	script := ".\\scripts\\apps.ps1"
+	timeout := appsRequestTimeout
+	maxResponseBytes := maxAppsResponseBytes
+	var args []string
+	if query.projected {
+		script = ".\\scripts\\apps-query.ps1"
+		timeout = projectedAppsTimeout
+		maxResponseBytes = maxProjectedResponseBytes
+		args = query.powerShellArgs()
+	}
+	ctx, cancel := context.WithTimeout(r.Context(), timeout)
+	defer cancel()
+	var output []byte
+	if query.projected {
+		output, err = executePowerShellScriptWithNamedArgsContext(ctx, script, args...)
+	} else {
+		output, err = executePowerShellScriptContext(ctx, script, true)
+	}
+	if err != nil {
+		if ctx.Err() == context.DeadlineExceeded {
+			http.Error(w, "App discovery timed out", http.StatusGatewayTimeout)
+			return
+		}
 		http.Error(w, "Failed to execute script: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+	if len(output) > maxResponseBytes {
+		http.Error(w, "App discovery response exceeds the safe size limit", http.StatusInternalServerError)
 		return
 	}
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
@@ -57,7 +96,17 @@ func getApps(w http.ResponseWriter, r *http.Request) {
 }
 
 func getHealth(w http.ResponseWriter, r *http.Request) {
-	response := map[string]string{"status": "ok"}
+	response := struct {
+		Status         string   `json:"status"`
+		APIVersion     int      `json:"apiVersion"`
+		Authentication string   `json:"authentication"`
+		Capabilities   []string `json:"capabilities"`
+	}{
+		Status:         "ok",
+		APIVersion:     1,
+		Authentication: "bearer",
+		Capabilities:   []string{appsQueryCapability},
+	}
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(response)
