@@ -59,6 +59,7 @@ export enum MultiMonitorMode {
 export type WinboatConfigObj = {
     scale: number;
     scaleDesktop: number;
+    desktopSize: string,
     smartcardEnabled: boolean;
     rdpMonitoringEnabled: boolean;
     passedThroughDevices: PTSerializableDeviceInfo[];
@@ -78,6 +79,7 @@ const currentVersion = new WinboatVersion(import.meta.env.VITE_APP_VERSION);
 const defaultConfig: WinboatConfigObj = {
     scale: 100,
     scaleDesktop: 100,
+    desktopSize: "fullscreen",
     smartcardEnabled: false,
     rdpMonitoringEnabled: false,
     passedThroughDevices: [],
