@@ -54,6 +54,6 @@ failures return 401, timeouts return 504, and execution or response-limit
 failures return 500.
 
 A request without projected-query parameters retains the original `/apps`
-behavior. It has a 30-second execution limit and an 8 MiB response limit.
-Clients should use this legacy request only when `apps-query-v1` is absent;
-they should not downgrade after an advertised projected request fails.
+behavior, including its existing execution and response semantics. Clients
+should use this legacy request only when `apps-query-v1` is absent; they should
+not downgrade after an advertised projected request fails.

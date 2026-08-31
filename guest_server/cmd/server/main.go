@@ -26,9 +26,7 @@ var (
 )
 
 const (
-	appsRequestTimeout        = 30 * time.Second
 	projectedAppsTimeout      = 10 * time.Second
-	maxAppsResponseBytes      = 8 << 20
 	maxProjectedResponseBytes = 256 << 10
 )
 
@@ -60,24 +58,26 @@ func getApps(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	script := ".\\scripts\\apps.ps1"
-	timeout := appsRequestTimeout
-	maxResponseBytes := maxAppsResponseBytes
-	var args []string
-	if query.projected {
-		script = ".\\scripts\\apps-query.ps1"
-		timeout = projectedAppsTimeout
-		maxResponseBytes = maxProjectedResponseBytes
-		args = query.powerShellArgs()
+	if !query.projected {
+		// Preserve the query-less endpoint exactly for existing WinBoat clients.
+		// Only the advertised projected capability receives the new bounds.
+		output, err := executePowerShellScript(".\\scripts\\apps.ps1", true)
+		if err != nil {
+			http.Error(w, "Failed to execute script: "+err.Error(), http.StatusInternalServerError)
+			return
+		}
+		writeJSON(w, output)
+		return
 	}
-	ctx, cancel := context.WithTimeout(r.Context(), timeout)
+
+	ctx, cancel := context.WithTimeout(r.Context(), projectedAppsTimeout)
 	defer cancel()
-	var output []byte
-	if query.projected {
-		output, err = executePowerShellScriptWithNamedArgsContextBounded(ctx, script, maxResponseBytes, args...)
-	} else {
-		output, err = executePowerShellScriptContextBounded(ctx, script, true, maxResponseBytes)
-	}
+	output, err := executePowerShellScriptWithNamedArgsContextBounded(
+		ctx,
+		".\\scripts\\apps-query.ps1",
+		maxProjectedResponseBytes,
+		query.powerShellArgs()...,
+	)
 	if err != nil {
 		if ctx.Err() == context.DeadlineExceeded {
 			http.Error(w, "App discovery timed out", http.StatusGatewayTimeout)
@@ -86,10 +86,10 @@ func getApps(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Failed to execute script: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
-	if len(output) > maxResponseBytes {
-		http.Error(w, "App discovery response exceeds the safe size limit", http.StatusInternalServerError)
-		return
-	}
+	writeJSON(w, output)
+}
+
+func writeJSON(w http.ResponseWriter, output []byte) {
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	w.WriteHeader(http.StatusOK)
 	w.Write(output)

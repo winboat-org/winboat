@@ -54,10 +54,15 @@ echo "Building guest server updater..."
 go build -ldflags="${LDFLAGS[*]}" -o "$DIST/oem/updater/winboat_guest_server_updater.exe" ./cmd/updater
 
 # Runtime assets that ship inside server\ (these get updated alongside the exe).
-# Copy every runtime script so anything the server invokes at runtime — including
-# the projected apps-query.ps1 — is always packaged and can never silently drift
-# from the source tree.
-cp scripts/*.ps1 scripts/*.bat "$DIST/oem/server/scripts/"
+# Keep this allowlist explicit because the Guest service runs as SYSTEM; source-only
+# helper or test scripts must never enter a release package by glob expansion.
+runtime_scripts=(
+    scripts/apps.ps1
+    scripts/apps-query.ps1
+    scripts/get-icon.ps1
+    scripts/time-sync.bat
+)
+cp "${runtime_scripts[@]}" "$DIST/oem/server/scripts/"
 
 # Guard against packaging drift: fail the build if the server binaries reference a
 # script that was not placed into the package. Without this, the server can
