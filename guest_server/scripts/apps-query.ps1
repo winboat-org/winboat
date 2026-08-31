@@ -17,6 +17,9 @@ param(
 
 $ErrorActionPreference = 'Stop'
 $root = $PathPrefix.TrimEnd('\', '/')
+if ($root.Length -eq 2 -and $root[1] -eq ':') {
+    $root += '\'
+}
 $relativePath = $PathSuffix.TrimStart('\', '/')
 $selectedFields = @($Fields.Split(',') | ForEach-Object { $_.Trim() })
 $apps = [System.Collections.Generic.List[PSCustomObject]]::new()
@@ -27,11 +30,23 @@ function Test-PathContainsReparsePoint {
         [string]$RelativePath
     )
 
-    $current = Get-Item -LiteralPath $Root -Force -ErrorAction Stop
+    $combinedPath = if ($RelativePath) {
+        Join-Path -Path $Root -ChildPath $RelativePath
+    } else {
+        $Root
+    }
+    $fullPath = [System.IO.Path]::GetFullPath($combinedPath)
+    $pathRoot = [System.IO.Path]::GetPathRoot($fullPath)
+    if (-not $pathRoot) {
+        throw 'path must have a local drive root'
+    }
+
+    $current = Get-Item -LiteralPath $pathRoot -Force -ErrorAction Stop
     if (($current.Attributes -band [System.IO.FileAttributes]::ReparsePoint) -ne 0) {
         return $true
     }
-    foreach ($component in @($RelativePath.Split([char[]]@('\', '/'), [System.StringSplitOptions]::RemoveEmptyEntries))) {
+    $relativeFullPath = $fullPath.Substring($pathRoot.Length)
+    foreach ($component in @($relativeFullPath.Split([char[]]@('\', '/'), [System.StringSplitOptions]::RemoveEmptyEntries))) {
         $current = Get-Item -LiteralPath (Join-Path -Path $current.FullName -ChildPath $component) -Force -ErrorAction Stop
         if (($current.Attributes -band [System.IO.FileAttributes]::ReparsePoint) -ne 0) {
             return $true

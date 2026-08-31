@@ -13,6 +13,7 @@ const (
 	defaultAppsLimit    = 128
 	maxAppsLimit        = 128
 	maxAppsPathBytes    = 4096
+	maxAppsFieldsBytes  = 128
 )
 
 var projectedAppFields = map[string]string{
@@ -39,14 +40,7 @@ type appsQuery struct {
 
 func parseAppsQuery(values url.Values) (appsQuery, error) {
 	query := appsQuery{}
-	known := false
-	for _, key := range []string{"includeIcons", "pathPrefix", "pathSuffix", "fields", "limit"} {
-		if values.Has(key) {
-			known = true
-			break
-		}
-	}
-	if !known {
+	if len(values) == 0 {
 		return query, nil
 	}
 	for key, entries := range values {
@@ -58,8 +52,7 @@ func parseAppsQuery(values url.Values) (appsQuery, error) {
 		}
 	}
 
-	includeIcons, err := strconv.ParseBool(values.Get("includeIcons"))
-	if err != nil || includeIcons {
+	if values.Get("includeIcons") != "false" {
 		return appsQuery{}, errors.New("includeIcons=false is required for projected app queries")
 	}
 	pathPrefix := values.Get("pathPrefix")
@@ -91,9 +84,20 @@ func parseAppsQuery(values url.Values) (appsQuery, error) {
 	}, nil
 }
 
+func parseAppsRawQuery(rawQuery string) (appsQuery, error) {
+	values, err := url.ParseQuery(rawQuery)
+	if err != nil {
+		return appsQuery{}, errors.New("projected app query is malformed")
+	}
+	return parseAppsQuery(values)
+}
+
 func parseProjectedFields(raw string) ([]string, error) {
 	if raw == "" {
 		return nil, errors.New("fields is required for projected app queries")
+	}
+	if len(raw) > maxAppsFieldsBytes || strings.ContainsFunc(raw, unicode.IsControl) {
+		return nil, errors.New("fields exceeds the safe limits")
 	}
 	seen := make(map[string]struct{})
 	fields := make([]string, 0, len(projectedAppFields))
@@ -118,6 +122,9 @@ func isSafeWindowsRoot(value string) bool {
 	if len(value) < 3 || len(value) > maxAppsPathBytes || !isASCIIAlpha(value[0]) || value[1] != ':' || !isPathSeparator(value[2]) {
 		return false
 	}
+	if len(value) == 3 {
+		return true
+	}
 	return safeWindowsPathComponents(value[3:])
 }
 
@@ -129,7 +136,7 @@ func isSafeRelativeWindowsSuffix(value string) bool {
 }
 
 func safeWindowsPathComponents(value string) bool {
-	if value == "" || strings.ContainsAny(value, "*?\"") || strings.ContainsRune(value, ':') || strings.ContainsFunc(value, unicode.IsControl) {
+	if value == "" || strings.ContainsAny(value, "*?\"<>|") || strings.ContainsRune(value, ':') || strings.ContainsFunc(value, unicode.IsControl) {
 		return false
 	}
 	components := strings.FieldsFunc(value, func(r rune) bool { return r == '\\' || r == '/' })
@@ -137,7 +144,11 @@ func safeWindowsPathComponents(value string) bool {
 		return false
 	}
 	for _, component := range components {
-		if component == "." || component == ".." || strings.TrimSpace(component) == "" {
+		trimmed := strings.TrimSpace(component)
+		if trimmed == "" ||
+			component == "." ||
+			component == ".." ||
+			strings.TrimRight(component, " .") != component {
 			return false
 		}
 	}

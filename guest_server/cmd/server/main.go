@@ -54,7 +54,7 @@ type RDPStatusResponse struct {
 }
 
 func getApps(w http.ResponseWriter, r *http.Request) {
-	query, err := parseAppsQuery(r.URL.Query())
+	query, err := parseAppsRawQuery(r.URL.RawQuery)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
@@ -74,9 +74,9 @@ func getApps(w http.ResponseWriter, r *http.Request) {
 	defer cancel()
 	var output []byte
 	if query.projected {
-		output, err = executePowerShellScriptWithNamedArgsContext(ctx, script, args...)
+		output, err = executePowerShellScriptWithNamedArgsContextBounded(ctx, script, maxResponseBytes, args...)
 	} else {
-		output, err = executePowerShellScriptContext(ctx, script, true)
+		output, err = executePowerShellScriptContextBounded(ctx, script, true, maxResponseBytes)
 	}
 	if err != nil {
 		if ctx.Err() == context.DeadlineExceeded {
