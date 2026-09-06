@@ -63,7 +63,15 @@ export class PodmanContainer extends ContainerManager {
         fs.writeFileSync(this.composeFilePath, composeContent, { encoding: "utf-8" });
 
         containerLogger.info(`Wrote to compose file at: ${this.composeFilePath}`);
-        containerLogger.info(`Compose file content: ${JSON.stringify(composeContent, null, 2)}`);
+
+        // mask plain password
+        const composePassword = compose.services.windows.environment.PASSWORD ?? "";
+        const maskedCompose =
+            composePassword.length > 0
+                ? JSON.stringify(composeContent, null, 2).replaceAll(composePassword, "*****")
+                : JSON.stringify(composeContent, null, 2);
+
+        containerLogger.info(`Compose file content: ${maskedCompose}`);
     }
 
     async compose(direction: ComposeDirection, extraArgs: ComposeArguments[] = []): Promise<void> {
