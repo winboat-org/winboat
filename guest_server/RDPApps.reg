@@ -8,6 +8,13 @@ Windows Registry Editor Version 5.00
     [HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows NT\Terminal Services]
     "fAllowUnlistedRemotePrograms"=dword:00000001
 
+    ; Use the legacy RemoteApp shell to avoid automatic Run/RunOnce startup apps
+    "UseShellAppRuntimeRemoteApp"=dword:00000000
+
+    ; Disconnect two seconds after Windows considers the RemoteApp session empty
+    [HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Terminal Server]
+    "RemoteAppEmptySessionDisconnectTimeout"=dword:00000002
+
     ; Disable automatic administrator logon at startup
     [HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon]
     "AutoAdminLogon"="0"
