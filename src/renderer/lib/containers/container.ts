@@ -1,6 +1,7 @@
 import { ComposeConfig } from "../../../types";
 import { CONTAINER_LOG_FILE } from "../constants";
 import { createLogger } from "../../utils/log";
+import { execFileAsync } from "../exec-helper";
 
 const path: typeof import("node:path") = require("node:path");
 
@@ -27,6 +28,27 @@ export abstract class ContainerManager {
     abstract exists(): Promise<boolean>;
 
     abstract get containerName(): string;
+
+    async getExitError(): Promise<string | null> {
+        try {
+            const { stdout } = await execFileAsync(this.executableAlias, [
+                "inspect",
+                "--format={{json .State}}",
+                this.containerName,
+            ]);
+            const state = JSON.parse(stdout);
+            // A clean shutdown from Windows or the host runtime is not a failure.
+            if (!["exited", "stopped", "dead"].includes(state.Status)) return null;
+            if (state.OOMKilled) return "The Windows container ran out of memory.";
+            if (state.Error) return String(state.Error);
+            if (state.Dead || state.Status === "dead") return "The Windows container is in a dead state.";
+            if (typeof state.ExitCode === "number" && state.ExitCode !== 0)
+                return `The Windows container exited with code ${state.ExitCode}.`;
+        } catch (error) {
+            containerLogger.error(`Could not inspect the Windows container's exit result: ${error}`);
+        }
+        return null;
+    }
 
     // static "abstract" function
     static async _getSpecs(): Promise<any> {

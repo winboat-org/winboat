@@ -83,7 +83,7 @@ echo "Building guest server updater..."
 go build -ldflags="${LDFLAGS[*]}" -o "$DIST/oem/updater/winboat_guest_server_updater.exe" ./cmd/updater
 
 # Runtime assets that ship inside server\ (these get updated alongside the exe)
-cp scripts/apps.ps1 scripts/get-icon.ps1 scripts/time-sync.bat "$DIST/oem/server/scripts/"
+cp scripts/apps.ps1 scripts/get-icon.ps1 scripts/validate-app.ps1 scripts/path-utils.ps1 scripts/time-sync.bat "$DIST/oem/server/scripts/"
 
 # Install-time assets that live at the OEM/install root
 cp install.bat nssm.exe RDPApps.reg "$DIST/oem/"

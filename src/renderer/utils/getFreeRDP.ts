@@ -1,4 +1,5 @@
-import { execFileAsync, stringifyExecFile } from "../lib/exec-helper";
+import { execFileAsync, spawnDetached, stringifyExecFile } from "../lib/exec-helper";
+import { FREERDP_LOG_FILE } from "../lib/constants";
 
 export class FreeRDPInstallation {
     file: string;
@@ -18,6 +19,10 @@ export class FreeRDPInstallation {
 
     stringifyExec(args: string[]): string {
         return stringifyExecFile(this.file, this.defaultArgs.concat(args));
+    }
+
+    launch(args: string[]) {
+        return spawnDetached(this.file, this.defaultArgs.concat(args), FREERDP_LOG_FILE);
     }
 }
 

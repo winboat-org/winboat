@@ -1,5 +1,4 @@
-import { CONTAINER_LOG_FILE } from "../lib/constants";
-import { openExternal, openPath, showItemInFolder } from "../lib/electron";
+import { openExternal, showItemInFolder } from "../lib/electron";
 
 export function openLink(link: string) {
     if (link.startsWith("http")) {
@@ -16,8 +15,4 @@ export function openAnchorLink(e: MouseEvent) {
     if (href) {
         openLink(href);
     }
-}
-
-export function openContainerLogFile() {
-    return openPath(CONTAINER_LOG_FILE);
 }

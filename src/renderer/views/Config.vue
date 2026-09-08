@@ -414,6 +414,29 @@
             <x-label class="mb-4 text-neutral-300">WinBoat</x-label>
 
             <div class="flex flex-col gap-4">
+                <ConfigCard
+                    icon="mdi:tray"
+                    title="Closing WinBoat"
+                    desc="Choose what happens when you close the main window."
+                    type="dropdown"
+                    :options="['ask', 'tray', 'quit']"
+                    :option-labels="{ ask: 'Ask', tray: 'Keep in tray', quit: 'Quit WinBoat' }"
+                    v-model:value="wbConfig.config.closeAction"
+                />
+                <ConfigCard
+                    icon="mdi:power"
+                    title="Shut down Windows when quitting WinBoat"
+                    desc="Stopping Windows can close apps with unsaved work. Closing to the tray never shuts Windows down."
+                    type="switch"
+                    v-model:value="wbConfig.config.shutdownOnQuit"
+                />
+                <ConfigCard
+                    icon="mdi:application-import"
+                    title="Start Windows automatically for shortcuts"
+                    desc="Skip the startup question when opening a shortcut."
+                    type="switch"
+                    v-model:value="wbConfig.config.autoStartShortcuts"
+                />
                 <!-- Experimental Features -->
                 <ConfigCard
                     icon="streamline-ultimate:lab-tube-experiment"

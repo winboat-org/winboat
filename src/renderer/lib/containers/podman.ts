@@ -118,7 +118,7 @@ export class PodmanContainer extends ContainerManager {
             restarting: ContainerStatus.UNKNOWN,
             initialized: ContainerStatus.UNKNOWN,
             removing: ContainerStatus.UNKNOWN,
-            stopping: ContainerStatus.EXITED,
+            stopping: ContainerStatus.UNKNOWN,
             stopped: ContainerStatus.EXITED,
             running: ContainerStatus.RUNNING,
             paused: ContainerStatus.PAUSED,

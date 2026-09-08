@@ -120,3 +120,28 @@ export type USBDevice = {
     productID: string;
     alias: string;
 };
+
+export type Shortcut = {
+    id: string;
+    app: WinApp;
+    name: string;
+    extraArgs: string;
+    destination: "desktop" | "applications" | "both";
+    files: string[];
+};
+
+export type Launcher = {
+    type: "appimage" | "flatpak" | "bin";
+    executable: string;
+    args: string[];
+};
+
+export type LaunchState = {
+    kind: "starting" | "confirm" | "missing" | "guest-error" | "container-error" | "error" | "launched";
+    name: string;
+    icon?: string;
+    message: string;
+    detail?: string;
+};
+
+export type LaunchAction = "start" | "always-start" | "cancel" | "remove" | "quit";

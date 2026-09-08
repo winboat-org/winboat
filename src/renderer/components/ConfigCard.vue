@@ -45,12 +45,12 @@
             </template>
             <template v-else-if="props.type === 'dropdown'">
                 <x-select
-                    class="w-20"
+                    class="min-w-20"
                     @change="(e: any) => (value = e.detail.newValue)"
                 >
                     <x-menu>
                         <x-menuitem v-for="(opt, key) in props.options" :value="opt" :key="key" :toggled="value === opt">
-                            <x-label>{{ opt }}{{ props.unit ?? '' }}</x-label>
+                            <x-label>{{ props.optionLabels?.[opt] ?? opt }}{{ props.unit ?? '' }}</x-label>
                         </x-menuitem>
                     </x-menu>
                 </x-select>
@@ -121,9 +121,11 @@ type PropsType = {
      * Defines dropdown entries in case the `dropdown` type is specified.
      */
     options?: any[];
+    optionLabels?: Record<string, string>;
 };
 
 const props = defineProps<PropsType>();
+defineEmits<{ toggle: [] }>();
 const value = defineModel("value");
 
 function ensureNumericInput(e: any) {

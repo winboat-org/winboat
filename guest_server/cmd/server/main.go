@@ -145,7 +145,7 @@ func getIcon(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "path is required", http.StatusBadRequest)
 		return
 	}
-	if !isSafeIconPath(path) {
+	if pathHasUNCOrControlChars(path) {
 		http.Error(w, "invalid path", http.StatusBadRequest)
 		return
 	}
@@ -177,6 +177,7 @@ func main() {
 
 	r := mux.NewRouter()
 	r.Handle("/apps", protected(getApps)).Methods("GET")
+	r.Handle("/apps/validate", protected(validateApp)).Methods("POST")
 	r.HandleFunc("/health", getHealth).Methods("GET")
 	r.Handle("/provisioning/graphics/status", protected(getGraphicsProvisioningStatus)).Methods("GET")
 	r.Handle("/version", protected(getVersion)).Methods("GET")

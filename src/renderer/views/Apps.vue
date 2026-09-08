@@ -1,5 +1,6 @@
 <template>
     <div>
+        <ShortcutDialog ref="shortcutDialog" />
         <dialog ref="addCustomAppDialog">
             <h3 class="mb-2">{{ currentAppForm.Source === "custom" ? "Edit App" : "Add App" }}</h3>
             <div class="flex flex-row gap-5 mt-4 w-[35vw]">
@@ -228,6 +229,14 @@
                     <Icon class="size-4" icon="mdi:trash-can-outline"></Icon>
                     <x-label>Remove</x-label>
                 </WBMenuItem>
+                <WBMenuItem @click="openShortcutDialog">
+                    <Icon class="size-4" icon="mdi:application-export"></Icon>
+                    <x-label>{{ contextMenuTarget && shortcutFor(contextMenuTarget) ? 'Edit Shortcut' : 'Create Shortcut' }}</x-label>
+                </WBMenuItem>
+                <WBMenuItem v-if="contextMenuTarget && shortcutFor(contextMenuTarget)" @click="deleteAppShortcut">
+                    <Icon class="size-4" icon="mdi:link-off"></Icon>
+                    <x-label>Delete Shortcut</x-label>
+                </WBMenuItem>
             </WBContextMenu>
         </div>
         <div v-else class="px-2 mt-32">
@@ -260,16 +269,20 @@ import { ContainerStatus } from "../lib/containers/common";
 import { type WinApp } from "../../types";
 import WBContextMenu from "../components/WBContextMenu.vue";
 import WBMenuItem from "../components/WBMenuItem.vue";
+import ShortcutDialog from "../components/ShortcutDialog.vue";
+import { desktopFailure } from "../lib/shortcuts";
+import { refreshShortcuts, deleteShortcut as removeShortcut, shortcutFor } from "../lib/shortcut-files";
 import { AppIcons, DEFAULT_ICON } from "../data/appicons";
 import { debounce } from "../utils/debounce";
-import { Jimp, JimpMime } from "jimp";
 import { WinboatConfig } from "../lib/config";
 import { WINBOAT_API_URL } from "../lib/constants";
 import { guestAuthHeaders } from "../utils/guestServer";
 const nodeFetch: typeof import("node-fetch").default = require("node-fetch");
 const FormData: typeof import("form-data") = require("form-data");
+const { Jimp, JimpMime }: typeof import("jimp") = require("jimp");
 
 const winboat = Winboat.getInstance();
+const shortcutDialog = useTemplateRef("shortcutDialog");
 const apps = ref<WinApp[]>([]);
 const searchInput = ref("");
 const sortBy = ref("");
@@ -333,6 +346,8 @@ const computedApps = computed(() => {
 });
 
 onMounted(async () => {
+    try { refreshShortcuts(); }
+    catch (error) { desktopFailure.value = { kind: "error", name: "Shortcuts", message: "Could not read your shortcuts.", detail: String(error) }; }
     sortBy.value = WinboatConfig.getInstance().config.appsSortOrder;
 
     await refreshApps();
@@ -425,7 +440,7 @@ const launchingAppId = ref<string | null>(null);
 
 function handleLaunchApp(app: WinApp) {
     launchingAppId.value = app.id!;
-    winboat.launchApp(app);
+    winboat.launchApp(app).catch(error => winboat.reportFailure("error", `Could not open ${app.Name}.`, error));
     setTimeout(() => {
         launchingAppId.value = null;
     }, 1200);
@@ -433,6 +448,19 @@ function handleLaunchApp(app: WinApp) {
 
 const contextMenuRef = ref();
 const contextMenuTarget = ref<WinApp | null>(null);
+
+function openShortcutDialog() {
+    if (contextMenuTarget.value) shortcutDialog.value?.open(contextMenuTarget.value);
+    hideContextMenu();
+}
+
+function deleteAppShortcut() {
+    const shortcut = contextMenuTarget.value && shortcutFor(contextMenuTarget.value);
+    hideContextMenu();
+    if (!shortcut) return;
+    try { removeShortcut(shortcut.id); }
+    catch (error) { winboat.reportFailure("error", "Could not delete the shortcut.", error); }
+}
 
 async function openContextMenu(event: MouseEvent, app: WinApp) {
     contextMenuTarget.value = app;
@@ -504,7 +532,7 @@ function onContextMenuHide() {
 
 function launchApp() {
     if (contextMenuTarget.value) {
-        winboat.launchApp(contextMenuTarget.value);
+        handleLaunchApp(contextMenuTarget.value);
     }
 }
 

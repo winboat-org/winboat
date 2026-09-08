@@ -30,7 +30,7 @@
                             <a
                                 v-if="!winboat.isOnline.value"
                                 title="Get Help"
-                                href="https://rentry.org/winboat_guest_server_borked"
+                                :href="GS_TROUBLESHOOTING_URL"
                                 @click="openAnchorLink"
                                 class="text-red-400 hover:text-red-500 hover:underline inline-flex translate-y-1 transition"
                             >
@@ -61,7 +61,7 @@
                             }}
                             <button
                                 v-if="winboat.containerStatus.value === ContainerStatus.ERROR"
-                                @click="openContainerLogFile()"
+                                @click="logsOpen = true"
                                 class="text-sm"
                             >
                                 (check logs
@@ -84,7 +84,7 @@
                         winboat.containerStatus.value === ContainerStatus.UNKNOWN ||
                         winboat.containerStatus.value === ContainerStatus.ERROR
                     "
-                    @click="winboat.startContainer()"
+                    @click="containerAction('start')"
                 >
                     <Icon class="w-20 h-20 text-green-300" icon="mingcute:play-fill"></Icon>
                 </button>
@@ -92,7 +92,7 @@
                     title="Stop"
                     class="generic-hover"
                     v-if="winboat.containerStatus.value === ContainerStatus.RUNNING"
-                    @click="winboat.stopContainer()"
+                    @click="containerAction('stop')"
                 >
                     <Icon class="w-20 h-20 text-red-300" icon="mingcute:stop-fill"></Icon>
                 </button>
@@ -100,7 +100,7 @@
                     title="Restart"
                     class="generic-hover"
                     v-if="winboat.containerStatus.value === ContainerStatus.RUNNING"
-                    @click="winboat.restartContainer()"
+                    @click="containerAction('restart')"
                 >
                     <Icon class="w-20 h-20 text-orange-300" icon="mingcute:refresh-3-line"></Icon>
                 </button>
@@ -114,8 +114,8 @@
                     "
                     @click="
                         winboat.containerStatus.value === ContainerStatus.PAUSED
-                            ? winboat.unpauseContainer()
-                            : winboat.pauseContainer()
+                            ? containerAction('unpause')
+                            : containerAction('pause')
                     "
                 >
                     <Icon class="w-20 h-20 text-yellow-100" icon="mingcute:pause-line"></Icon>
@@ -186,15 +186,26 @@ import { onMounted, ref } from "vue";
 import { Winboat } from "../lib/winboat";
 import { ContainerStatus } from "../lib/containers/common";
 import { type ComposeConfig } from "../../types";
-import { WINDOWS_VERSIONS } from "../lib/constants";
+import { WINDOWS_VERSIONS, GS_TROUBLESHOOTING_URL } from "../lib/constants";
 import { Icon } from "@iconify/vue";
 import RadialGauge from "../components/RadialGauge.vue";
 import { capitalizeFirstLetter } from "../utils/capitalize";
-import { openAnchorLink, openContainerLogFile } from "../utils/openLink";
+import { openAnchorLink } from "../utils/openLink";
+import { logsOpen } from "../lib/shortcuts";
 
 const winboat = Winboat.getInstance();
 const compose = ref<ComposeConfig | null>(null);
 const wallpaper = ref("");
+
+async function containerAction(action: "start" | "stop" | "restart" | "pause" | "unpause") {
+    try {
+        await winboat[`${action}Container`]();
+    } catch (error) {
+        // Start and restart report their failures in Winboat.
+        if (action !== "start" && action !== "restart")
+            winboat.reportFailure("container-error", `Could not ${action} the Windows container.`, error);
+    }
+}
 
 onMounted(async () => {
     compose.value = Winboat.readCompose(winboat.containerMgr!.composeFilePath);

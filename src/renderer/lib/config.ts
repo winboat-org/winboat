@@ -71,6 +71,9 @@ export type WinboatConfigObj = {
     containerRuntime: ContainerRuntimes;
     versionData: WinboatVersionData;
     appsSortOrder: string;
+    closeAction: "ask" | "tray" | "quit";
+    shutdownOnQuit: boolean;
+    autoStartShortcuts: boolean;
 };
 
 const currentVersion = new WinboatVersion(import.meta.env.VITE_APP_VERSION);
@@ -94,6 +97,9 @@ const defaultConfig: WinboatConfigObj = {
         current: currentVersion
     },
     appsSortOrder: 'name',
+    closeAction: "ask",
+    shutdownOnQuit: false,
+    autoStartShortcuts: false,
 };
 
 export class WinboatConfig {

@@ -1,5 +1,5 @@
 import { createConsola } from "consola";
-const { writeFileSync, appendFileSync, mkdirSync }: typeof import("fs") = require("node:fs");
+const { writeFileSync, appendFileSync, mkdirSync, existsSync, statSync, openSync, readSync, closeSync }: typeof import("fs") = require("node:fs");
 const { dirname }: typeof import("path") = require("node:path");
 
 export function createLogger(filePath: string) {
@@ -34,4 +34,15 @@ export function createLogger(filePath: string) {
     });
 
     return logger;
+}
+
+export function readLogTail(file: string): string {
+    if (!existsSync(file)) return "No logs yet.";
+    const size = statSync(file).size;
+    const buffer = Buffer.alloc(Math.min(size, 256 * 1024));
+    const fd = openSync(file, "r");
+    try {
+        readSync(fd, buffer, 0, buffer.length, Math.max(0, size - buffer.length));
+        return buffer.toString("utf8");
+    } finally { closeSync(fd); }
 }

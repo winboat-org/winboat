@@ -1,5 +1,4 @@
 import { createApp } from "vue";
-import App from "./App.vue";
 import { router } from "./router";
 import "./index.css";
 import { autoScroll } from "./directives/autoscroll";
@@ -20,7 +19,11 @@ if (import.meta.env.DEV) {
     await initializeAppPath();
 }
 
-createApp(App)
+const root = new URLSearchParams(location.search).has("shortcut-window")
+    ? (await import("./views/ShortcutWindow.vue")).default
+    : (await import("./App.vue")).default;
+
+createApp(root)
     .directive("auto-scroll", autoScroll)
     .use(router)
     .mount("#app");

@@ -1,8 +1,8 @@
-import type { OpenDialogOptions, OpenDialogReturnValue } from "electron";
+import type { MessageBoxOptions, MessageBoxReturnValue, OpenDialogOptions, OpenDialogReturnValue } from "electron";
 
 const { ipcRenderer }: typeof import("electron") = require("electron");
 
-type WindowAction = "close" | "toggle-maximize" | "minimize";
+type WindowAction = "close" | "toggle-maximize" | "minimize" | "show" | "show-error" | "hide";
 let appPath: string | null = null;
 
 export async function initializeAppPath() {
@@ -33,10 +33,10 @@ export function showItemInFolder(path: string): Promise<void> {
     return ipcRenderer.invoke("shell:show-item-in-folder", path);
 }
 
-export function openPath(path: string): Promise<string> {
-    return ipcRenderer.invoke("shell:open-path", path);
-}
-
 export function exitApp() {
     ipcRenderer.send("app:exit");
+}
+
+export function showMessageBox(options: MessageBoxOptions): Promise<MessageBoxReturnValue> {
+    return ipcRenderer.invoke("dialog:show-message", options);
 }
