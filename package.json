@@ -42,7 +42,7 @@
         "check-disk-space": "^3.4.0",
         "consola": "^3.4.2",
         "form-data": "^4.0.5",
-        "jimp": "1.6.0",
+        "jimp": "1.6.1",
         "marked": "^17.0.1",
         "nanoevents": "^9.1.0",
         "node-fetch": "2",

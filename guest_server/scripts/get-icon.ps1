@@ -21,6 +21,7 @@ param(
 
 # Suppress non-terminating errors to keep stdout clean (only base64 should be printed)
 $ErrorActionPreference = 'SilentlyContinue'
+. "$PSScriptRoot/path-utils.ps1"
 
 # Load System.Drawing for icon extraction/conversion
 Add-Type -AssemblyName System.Drawing -ErrorAction SilentlyContinue
@@ -35,6 +36,7 @@ function Write-FallbackBase64 {
 function Resolve-LnkTargetPath {
     param([string]$lnkPath)
 
+    if (-not (Test-LocalFilePath $lnkPath)) { return $null }
     if (-not (Test-Path -LiteralPath $lnkPath -PathType Leaf)) { return $null }
     try {
         $shell = New-Object -ComObject WScript.Shell -Strict
@@ -43,13 +45,14 @@ function Resolve-LnkTargetPath {
             if ($shortcut -and $shortcut.IconLocation) {
                 # IconLocation can be "path,index"; prefer the icon file path if present
                 $iconSpec = $shortcut.IconLocation
-                $iconPath = $iconSpec.Split(',')[0]
-                if ($iconPath -and (Test-Path -LiteralPath $iconPath -PathType Leaf)) {
+                $iconPath = [Environment]::ExpandEnvironmentVariables($iconSpec.Split(',')[0])
+                if ((Test-LocalFilePath $iconPath) -and (Test-Path -LiteralPath $iconPath -PathType Leaf)) {
                     return $iconPath
                 }
             }
             if ($shortcut -and $shortcut.TargetPath) {
-                return $shortcut.TargetPath
+                $targetPath = [Environment]::ExpandEnvironmentVariables($shortcut.TargetPath)
+                if (Test-LocalFilePath $targetPath) { return $targetPath }
             }
         } finally {
             if ($shell) { [System.Runtime.InteropServices.Marshal]::ReleaseComObject($shell) | Out-Null }
@@ -64,6 +67,7 @@ function Get-IconBase64FromFile {
         [int]$size
     )
 
+    if (-not (Test-LocalFilePath $filePath)) { return $null }
     if (-not [System.Drawing.Icon]) { return $null }
 
     try {
@@ -100,12 +104,20 @@ function Get-IconBase64FromFile {
 
 # Expand %VAR% environment variables without evaluating PowerShell expressions
 $expandedPath = try { [System.Environment]::ExpandEnvironmentVariables($Path) } catch { $Path }
+if (-not (Test-LocalFilePath $expandedPath)) {
+    Write-FallbackBase64
+    exit 0
+}
 
 # Resolve .lnk shortcuts first if the given path ends with .lnk
 $candidatePath = $expandedPath
 if ($candidatePath -like '*.lnk') {
     $lnkTarget = Resolve-LnkTargetPath -lnkPath $candidatePath
-    if ($lnkTarget) { $candidatePath = $lnkTarget }
+    if (-not $lnkTarget) {
+        Write-FallbackBase64
+        exit 0
+    }
+    $candidatePath = $lnkTarget
 }
 
 # Resolve to a filesystem path if possible
@@ -113,7 +125,7 @@ $resolvedPath = try { (Resolve-Path -LiteralPath $candidatePath -ErrorAction Sil
 if (-not $resolvedPath) { $resolvedPath = $candidatePath }
 
 # Ensure target exists and is a file
-if (-not (Test-Path -LiteralPath $resolvedPath -PathType Leaf)) {
+if (-not (Test-LocalFilePath $resolvedPath) -or -not (Test-Path -LiteralPath $resolvedPath -PathType Leaf)) {
     Write-FallbackBase64
     exit 0
 }

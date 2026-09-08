@@ -26,6 +26,8 @@
             <x-label>WinBoat</x-label>
         </x-titlebar>
 
+        <DesktopDialogs />
+
         <!-- Updater -->
         <dialog ref="updateDialog">
             <Icon class="text-indigo-400 size-12" icon="mdi:cloud-upload"></Icon>
@@ -167,6 +169,8 @@ import { USBManager } from "./lib/usbmanager";
 import { NOVNC_URL } from "./lib/constants";
 import { performAutoMigrations } from "./lib/migrate";
 import { performWindowAction } from "./lib/electron";
+import { initializeDesktop } from "./lib/shortcuts";
+import DesktopDialogs from "./components/DesktopDialogs.vue";
 const os: typeof import("os") = require("node:os");
 
 const $router = useRouter();
@@ -222,6 +226,7 @@ onMounted(async () => {
             }
         },
     );
+    await initializeDesktop(winboat ?? null);
 });
 
 function handleTitleBarEvent(e: CustomEvent) {

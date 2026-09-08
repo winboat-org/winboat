@@ -3,12 +3,14 @@ const process: typeof import("process") = require("node:process");
 const path: typeof import("path") = require("node:path");
 
 // Should be {XDG_DATA_HOME}/winboat-app or {home}/.local/share/winboat-app if missing
-export const WINBOAT_DIR = process.env.XDG_DATA_HOME
-    ? path.join(process.env.XDG_DATA_HOME, "winboat-app")
-    : path.join(os.homedir(), ".local", "share", "winboat-app");
+export const DATA_HOME = process.env.XDG_DATA_HOME || path.join(os.homedir(), ".local", "share");
+export const WINBOAT_DIR = path.join(DATA_HOME, "winboat-app");
 export const DEFAULT_HOMEBREW_DIR = path.join(os.homedir(), "../linuxbrew/.linuxbrew/bin");
 
 export const CONTAINER_LOG_FILE = path.join(WINBOAT_DIR, "container.log");
+export const WINBOAT_LOG_FILE = path.join(WINBOAT_DIR, "winboat.log");
+export const FREERDP_LOG_FILE = path.join(WINBOAT_DIR, "freerdp.log");
+export const GS_TROUBLESHOOTING_URL = "https://rentry.org/winboat_guest_server_borked";
 
 // Shared secret used to authenticate the host to the guest services. Generated
 // once at install time and seeded into the guest via the OEM mount.

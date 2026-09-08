@@ -933,7 +933,7 @@
                             <x-label class="text-lg text-gray-400 text-center">
                                 Windows has been installed successfully!
                             </x-label>
-                            <x-button @click="$router.push('/home')">Finish</x-button>
+                            <x-button @click="finishSetup">Finish</x-button>
                         </div>
                     </div>
                 </div>
@@ -980,6 +980,10 @@ const path: typeof import("path") = require("node:path");
 const fs: typeof import("fs") = require("node:fs");
 const os: typeof import("os") = require("node:os");
 const checkDiskSpace: typeof import("check-disk-space").default = require("check-disk-space").default;
+
+function finishSetup() {
+    window.location.reload();
+}
 
 type Step = {
     id: string;

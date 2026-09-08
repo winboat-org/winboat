@@ -1,6 +1,11 @@
-import { app, BrowserWindow, ipcMain, session, dialog, shell, type OpenDialogOptions } from "electron";
+import { app, BrowserWindow, ipcMain, session, dialog, shell, type MessageBoxOptions, type OpenDialogOptions } from "electron";
 import { readFileSync, writeFileSync } from "fs";
 import { join } from "path";
+import { quitApp, receiveLaunch, setupDesktop, shortcutArgument } from "./desktop.js";
+
+const initialShortcut = shortcutArgument(process.argv);
+const primaryInstance = app.requestSingleInstanceLock({ shortcut: initialShortcut });
+if (!primaryInstance) app.quit();
 
 // Avoid a dedicated network utility process.
 app.commandLine.appendSwitch("enable-features", "NetworkServiceInProcess2");
@@ -84,17 +89,6 @@ function writeWindowState(window: BrowserWindow) {
 let mainWindow: BrowserWindow | null = null;
 
 function createWindow() {
-    if (!app.requestSingleInstanceLock()) {
-        // @ts-ignore property "window" is optional, see: [dialog.showMessageBoxSync](https://www.electronjs.org/docs/latest/api/dialog#dialogshowmessageboxsyncwindow-options)
-        dialog.showMessageBoxSync(null, {
-            type: "error",
-            buttons: ["Close"],
-            title: "WinBoat",
-            message: "An instance of WinBoat is already running.\n\tMultiple Instances are not allowed.",
-        });
-        app.exit();
-    }
-
     const windowState = readWindowState();
 
     mainWindow = new BrowserWindow({
@@ -106,10 +100,12 @@ function createWindow() {
         y: windowState.position?.y,
         transparent: false,
         frame: false,
+        show: initialShortcut === null,
         webPreferences: {
             // preload: join(__dirname, 'preload.js'),
             nodeIntegration: true,
             contextIsolation: false,
+            backgroundThrottling: false,
         },
     });
 
@@ -117,15 +113,21 @@ function createWindow() {
         if (mainWindow) writeWindowState(mainWindow);
     });
 
+    setupDesktop(mainWindow, loadWindow, initialShortcut);
+    loadWindow(mainWindow);
+}
+
+function loadWindow(window: BrowserWindow, shortcut = false) {
     if (process.env.NODE_ENV === "development") {
         const rendererPort = process.argv[2];
-        mainWindow.loadURL(`http://localhost:${rendererPort}`);
+        window.loadURL(`http://localhost:${rendererPort}${shortcut ? "?shortcut-window" : ""}`);
     } else {
-        mainWindow.loadFile(join(app.getAppPath(), "renderer", "index.html"));
+        window.loadFile(join(app.getAppPath(), "renderer", "index.html"), shortcut ? { query: { "shortcut-window": "" } } : {});
     }
 }
 
 app.whenReady().then(() => {
+    if (!primaryInstance) return;
     createWindow();
 
     session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
@@ -157,10 +159,9 @@ app.on("window-all-closed", function () {
     if (process.platform !== "darwin") app.quit();
 });
 
-app.on("second-instance", _ => {
-    if (mainWindow) {
-        mainWindow.focus();
-    }
+app.on("second-instance", (_event, argv, _cwd, data) => {
+    const request = data as { shortcut?: unknown };
+    receiveLaunch(typeof request?.shortcut === "string" ? request.shortcut : shortcutArgument(argv));
 });
 
 ipcMain.on("message", (_event, message) => {
@@ -172,6 +173,17 @@ ipcMain.on("window:action", (event, action: unknown) => {
     if (!window) return;
 
     switch (action) {
+        case "show":
+            window.show();
+            if (window.isMinimized()) window.restore();
+            window.focus();
+            break;
+        case "show-error":
+            if (!window.isVisible()) window.show();
+            break;
+        case "hide":
+            window.hide();
+            break;
         case "close":
             window.close();
             break;
@@ -198,6 +210,9 @@ ipcMain.handle("shell:open-external", (_event, link: string) => {
 });
 
 ipcMain.handle("shell:show-item-in-folder", (_event, path: string) => shell.showItemInFolder(path));
-ipcMain.handle("shell:open-path", (_event, path: string) => shell.openPath(path));
 ipcMain.handle("app:get-app-path", () => app.getAppPath());
-ipcMain.on("app:exit", () => app.exit());
+ipcMain.on("app:exit", quitApp);
+ipcMain.handle("dialog:show-message", (event, options: MessageBoxOptions) => {
+    const window = BrowserWindow.fromWebContents(event.sender);
+    return window ? dialog.showMessageBox(window, options) : dialog.showMessageBox(options);
+});
