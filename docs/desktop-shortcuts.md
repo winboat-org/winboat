@@ -2,7 +2,7 @@
 
 Shortcuts invoke WinBoat through a stable launcher in `$XDG_DATA_HOME/winboat-app`
 (normally `~/.local/share/winboat-app`). They use the current WinBoat configuration
-and FreeRDP installation at launch time. WinBoat does not add an automatic
+and FreeRDP selection at launch time (bundled by default, or the optional detected system client). WinBoat does not add an automatic
 reconnect flag.
 
 ## Files

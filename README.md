@@ -61,8 +61,7 @@ Before running WinBoat, ensure your system meets the following requirements:
       - On Debian/Ubuntu and forks, the Podman version installed with `apt install` could be too old. Make sure you have **Version 4.x.x** or higher to ensure the installation completes successfully.
   - **Podman Compose**: Required for compatibility with podman-compose.yml files
       - [Installation Guide](https://github.com/containers/podman-compose?tab=readme-ov-file#installation)
-- **FreeRDP**: Required for remote desktop connection (Please make sure you have **Version 3.x.x** with sound support included)
-    - [Installation Guide](https://github.com/FreeRDP/FreeRDP/wiki/PreBuilds)
+- **FreeRDP is included**: WinBoat ships its own client; no separate installation is required. Settings → FreeRDP lets you optionally use a detected system FreeRDP 3 installation.
 - [OPTIONAL] **Kernel Modules**: The `iptables` / `nftables` kernel modules can be loaded for better network performance, but this is not obligatory in newer versions of WinBoat
     - [Module loading instructions](https://rentry.org/rmfq2e5e)
 
@@ -98,6 +97,10 @@ You can download the latest Linux builds under the [Releases](https://github.com
 Linux x64 release builds use the [WinBoat Electron fork](https://github.com/winboat-org/electron/releases/tag/winboat-v43.2.0-1).
 The build downloads the pinned release archive, verifies its SHA-256 value, and stores it in `.cache/electron`.
 Set `WINBOAT_ELECTRON_ZIP` to a verified local copy of the same archive for an offline build.
+
+Both builds and `bun run dev` also prepare the pinned WBFreeRDP client automatically.
+Use `WINBOAT_FREERDP_ARCHIVE` for a local copy of that release archive. See
+[bundled FreeRDP](docs/bundled-freerdp.md) for runtime paths, system-client selection and source/relinking materials.
 
 ## Running WinBoat in development mode
 

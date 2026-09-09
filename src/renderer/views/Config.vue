@@ -269,11 +269,32 @@
                 </x-card>
             </div>
         </div>
-        <div v-show="wbConfig.config.advancedFeatures">
+        <div>
             <x-label class="mb-4 text-neutral-300">FreeRDP</x-label>
             <div class="flex flex-col gap-4">
+                <ConfigCard icon="fluent:desktop-arrow-right-24-filled" title="Use system FreeRDP" type="custom">
+                    <template #desc>
+                        <span v-if="checkingSystemFreeRDP">Checking for a compatible FreeRDP 3 installation…</span>
+                        <span v-else-if="systemFreeRDP">
+                            Use your installed FreeRDP instead of WinBoat’s bundled client. Changes apply to new connections.
+                        </span>
+                        <span v-else>No compatible system FreeRDP 3 found. WinBoat’s bundled client will be used.</span>
+                    </template>
+                    <x-button :disabled="checkingSystemFreeRDP" @click="refreshSystemFreeRDP" title="Check for system FreeRDP">
+                        <Icon icon="mdi:refresh" class="size-5" :class="{ 'animate-spin': checkingSystemFreeRDP }" />
+                        <x-label class="sr-only">Check again</x-label>
+                    </x-button>
+                    <x-switch
+                        :toggled="wbConfig.config.useSystemFreeRDP"
+                        :disabled="checkingSystemFreeRDP || (!systemFreeRDP && !wbConfig.config.useSystemFreeRDP)"
+                        @toggle="wbConfig.config.useSystemFreeRDP = !wbConfig.config.useSystemFreeRDP"
+                        aria-label="Use system FreeRDP"
+                        size="large"
+                    />
+                </ConfigCard>
                 <!-- RDP args -->
                 <x-card
+                    v-show="wbConfig.config.advancedFeatures"
                     class="flex flex-row justify-between items-center p-2 py-3 my-0 w-full backdrop-blur-xl backdrop-brightness-150 bg-neutral-800/20"
                 >
                     <div class="w-full">
@@ -524,7 +545,20 @@ import {
     DEFAULT_GPU_VRAM_GB,
 } from "../lib/constants";
 import { exitApp, showOpenDialog } from "../lib/electron";
+import { getSystemFreeRDP, type FreeRDPInstallation } from "../utils/getFreeRDP";
 const os: typeof import("os") = require("node:os");
+
+const systemFreeRDP = ref<FreeRDPInstallation | null>(null);
+const checkingSystemFreeRDP = ref(true);
+
+async function refreshSystemFreeRDP() {
+    checkingSystemFreeRDP.value = true;
+    try {
+        systemFreeRDP.value = await getSystemFreeRDP();
+    } finally {
+        checkingSystemFreeRDP.value = false;
+    }
+}
 
 // For Resources
 const compose = ref<ComposeConfig | null>(null);
@@ -578,7 +612,7 @@ const RENDER_DEVICE_MAPPING = /^\/dev\/dri\/renderD\d+(?::|$)/;
 let nvidiaSupportCheckSequence = 0;
 
 onMounted(async () => {
-    await assignValues();
+    await Promise.all([assignValues(), refreshSystemFreeRDP()]);
 });
 
 /**

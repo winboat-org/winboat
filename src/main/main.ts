@@ -2,6 +2,7 @@ import { app, BrowserWindow, ipcMain, session, dialog, shell, type MessageBoxOpt
 import { readFileSync, writeFileSync } from "fs";
 import { join } from "path";
 import { quitApp, receiveLaunch, setupDesktop, shortcutArgument } from "./desktop.js";
+import { bundledFreeRDPPath } from "./runtime-paths.js";
 
 const initialShortcut = shortcutArgument(process.argv);
 const primaryInstance = app.requestSingleInstanceLock({ shortcut: initialShortcut });
@@ -211,6 +212,12 @@ ipcMain.handle("shell:open-external", (_event, link: string) => {
 
 ipcMain.handle("shell:show-item-in-folder", (_event, path: string) => shell.showItemInFolder(path));
 ipcMain.handle("app:get-app-path", () => app.getAppPath());
+ipcMain.handle("app:get-freerdp-path", () => bundledFreeRDPPath({
+    isPackaged: app.isPackaged,
+    resourcesPath: process.resourcesPath,
+    appPath: app.getAppPath(),
+    arch: process.arch,
+}));
 ipcMain.on("app:exit", quitApp);
 ipcMain.handle("dialog:show-message", (event, options: MessageBoxOptions) => {
     const window = BrowserWindow.fromWebContents(event.sender);

@@ -2,6 +2,7 @@ node_modules
 dist
 build
 .cache/electron/
+.cache/freerdp/
 
 .vscode
 .idea

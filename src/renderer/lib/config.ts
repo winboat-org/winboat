@@ -60,6 +60,7 @@ export type WinboatConfigObj = {
     scale: number;
     scaleDesktop: number;
     smartcardEnabled: boolean;
+    useSystemFreeRDP: boolean;
     rdpMonitoringEnabled: boolean;
     passedThroughDevices: PTSerializableDeviceInfo[];
     customApps: WinApp[];
@@ -82,6 +83,7 @@ const defaultConfig: WinboatConfigObj = {
     scale: 100,
     scaleDesktop: 100,
     smartcardEnabled: false,
+    useSystemFreeRDP: false,
     rdpMonitoringEnabled: false,
     passedThroughDevices: [],
     customApps: [],

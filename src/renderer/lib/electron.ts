@@ -17,6 +17,10 @@ export function getAppPath(): string {
     return appPath;
 }
 
+export function getBundledFreeRDPPath(): Promise<string> {
+    return ipcRenderer.invoke("app:get-freerdp-path");
+}
+
 export function performWindowAction(action: WindowAction) {
     ipcRenderer.send("window:action", action);
 }

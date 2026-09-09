@@ -6,7 +6,6 @@ export type Specs = {
     cpuCores: number;
     ramGB: number;
     kvmEnabled: boolean;
-    freeRDP3Installed: boolean;
 };
 
 export type InstallConfiguration = {

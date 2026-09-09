@@ -775,8 +775,11 @@ export class Winboat {
 
         logger.info(`Launching app: ${app.Name} at path ${app.Path}`);
 
-        const freeRDPInstallation = await getFreeRDP();
+        const freeRDPInstallation = await getFreeRDP(this.#wbConfig?.config.useSystemFreeRDP ?? false);
         signal?.throwIfAborted();
+        if (!freeRDPInstallation) {
+            throw new Error("Could not start bundled FreeRDP. Reinstall WinBoat or choose system FreeRDP in Settings.");
+        }
 
         // Arguments specified by user to override stock arguments
         const replacementArgs = this.#wbConfig?.config.rdpArgs.filter(a => a.isReplacement);
@@ -811,8 +814,6 @@ export class Winboat {
 
         this.appMgr?.incrementAppUsage(app);
         this.appMgr?.writeToDisk();
-
-        if (!freeRDPInstallation) throw new Error("FreeRDP was not found. Check your FreeRDP installation.");
 
         const safeArgs = args.map(arg => arg.startsWith("/p:") ? "/p:********" : arg);
         logger.info(`Launch FreeRDP with command:\n${freeRDPInstallation.stringifyExec(safeArgs)}`);

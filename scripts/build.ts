@@ -3,6 +3,7 @@ import Chalk from "chalk";
 import FileSystem from "fs";
 import * as Vite from "vite";
 import compileTs from "./private/tsc.ts";
+import { prepareFreeRDP } from "./prepare-freerdp.mjs";
 // ^ Extension can't be omitted because Node expects it
 import { fileURLToPath } from "url";
 
@@ -30,7 +31,7 @@ async function build() {
 
     console.log(Chalk.blueBright("Transpiling renderer & main..."));
 
-    await Promise.all([buildRenderer(), buildMain()]);
+    await Promise.all([buildRenderer(), buildMain(), prepareFreeRDP()]);
 
     console.log(
         Chalk.greenBright("Renderer & main successfully transpiled! (ready to be built with electron-builder)"),

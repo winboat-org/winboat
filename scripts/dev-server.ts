@@ -7,6 +7,7 @@ import Chalk from "chalk";
 import Chokidar from "chokidar";
 import Electron from "electron";
 import compileTs from "./private/tsc.ts";
+import { prepareFreeRDP } from "./prepare-freerdp.mjs";
 // ^ Extension needed because no TSConfig in the root
 import FileSystem from "fs";
 import { EOL } from "os";
@@ -43,7 +44,7 @@ async function startElectron() {
         return;
     }
 
-    const args = [Path.join(__dirname, "..", "build", "main", "main.js"), String(rendererPort)];
+    const args = [Path.join(__dirname, "..", "build", "main", "main.js"), String(rendererPort), ...process.argv.slice(2)];
 
     electronProcess = ChildProcess.spawn(String(Electron), args);
     electronProcessLocker = false;
@@ -102,6 +103,7 @@ async function start() {
     console.log(`${Chalk.greenBright("Starting Electron + Vite Dev Server...")}`);
     console.log(`${Chalk.greenBright("=======================================")}`);
 
+    await prepareFreeRDP();
     const devServer = await startRenderer();
     rendererPort = devServer.config.server.port;
 
@@ -122,4 +124,7 @@ async function start() {
     });
 }
 
-start();
+start().catch(error => {
+    console.error(Chalk.redBright("Could not start WinBoat:"), error);
+    process.exitCode = 1;
+});

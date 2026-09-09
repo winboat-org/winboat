@@ -54,6 +54,8 @@ jobs:
                   cache-dependency-path: "guest_server/go.sum"
             - name: Install dependencies
               run: bun ci
+            - name: Test FreeRDP selection and resource paths
+              run: bun test tests/freerdp.test.ts tests/prepare-freerdp.test.ts
             - name: Build guest server and app
               run: bun run build:linux-gs
               env:
@@ -177,6 +179,8 @@ jobs:
                   cache-dependency-path: "guest_server/go.sum"
             - name: Install dependencies
               run: bun ci
+            - name: Test FreeRDP selection and resource paths
+              run: bun test tests/freerdp.test.ts tests/prepare-freerdp.test.ts
             - name: Build guest server and app
               run: bun run build:linux-gs
               env:

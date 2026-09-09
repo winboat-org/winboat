@@ -6,6 +6,7 @@ import { pipeline } from "node:stream/promises";
 import { constants, createBrotliCompress } from "node:zlib";
 import { Arch } from "electron-builder";
 import { winboatElectron } from "./electron-release.mjs";
+import { verifyFreeRDP } from "./prepare-freerdp.mjs";
 
 async function verifyElectronExecutable(context) {
     if (context.electronPlatformName !== "linux" || context.arch !== Arch.x64) {
@@ -60,6 +61,7 @@ async function compressChromiumLicenses(appOutDir) {
 
 export default async function afterPack(context) {
     await verifyElectronExecutable(context);
+    await verifyFreeRDP(Path.join(context.appOutDir, "resources", "freerdp"));
 
     for (const handler of ["chrome_crashpad_handler", "chrome_crashpad_handler.exe"]) {
         await rm(Path.join(context.appOutDir, handler), { force: true });
