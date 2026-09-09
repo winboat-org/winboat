@@ -12,6 +12,8 @@
 # --- Setup ---
 # Load System.Drawing for icon extraction, suppress errors if already loaded
 Add-Type -AssemblyName System.Drawing -ErrorAction SilentlyContinue
+# Load WinRT PackageManager type for appx management, suppress type output
+$null = [Windows.Management.Deployment.PackageManager, Windows.Management.Deployment, ContentType=WindowsRuntime]
 
 # Default fallback icon (32x32 transparent PNG) if extraction fails
 $defaultIconBase64 = "iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAMAAABEpIrGAAAAAXNSR0IB2cksfwAAAAlwSFlzAAALEwAACxMBAJqcGAAAASZQTFRFAAAA+vr65ubm4uLkhYmLvL7A7u7w+/r729vb4eHjFYPbFoTa5eXnGIbcG4jc+fn7Gofc7+/x7OzuF4Xb+fn54uLiC37Z5OTmEIHaIIjcEYHbDoDZFIPcJ43fHYjd9fX28PDy3d3fI4rd3d3dHojc19fXttTsJIve2dnZDX/YCn3Y09PTjL/p5+fnh7zo2traJYzfIYjdE4Pb6urrW6Tf9PT1Ioneir7otNPsCX3Zhbvn+Pj5YKfhJYfWMo7a39/gKIzeKo7eMI3ZNJDcXqbg4eHhuNTsB3zYIoncBXvZLIrXIYjbLJDgt7m6ubu+YqjiKYvYvr6+tba3rs/sz8/P1+byJonXv7/DiImLxsbGjo6Ra6reurq6io6QkJKVw8PD0tLSycnJq1DGywAAAGJ0Uk5TAP////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////+BVJDaAAABY0lEQVR4nM2RaVOCUBSGr1CBgFZimppgoGnKopZSaYGmRpravq///0904IqOM9j00WeGT+9ztgtCS8Dzyh98fL6i2+HqQoaj0RPSzQNgzZc4F4wgvUuoqkr1er094MjlIeBCwRdFua9CqURQ51cty7Lykj0YCIIibnlEkS4TgCuky3nbTmSFsCKSHuso96N/Ox1aacjrlYQQ3gjNCYV7UlUJ6szCeRZyXmlkNjEZEPSuLIMAuYTreVYROQ8Y8SLTNAhlCdfzLMsaIhfHgEAT7pLtvFTH9QxTNWrmLsaEDu8558y2ZOP5LLNTNUQyiCFnHaRZnjTmzryhnR36FSdnIU9up7RGxAOuKJjOFX2vHvKU5jPiepbvxzR3BIffwROc++AAJy9qjQxQwz9rIjyGeN6tj8VACEyZCqfQn3H7F48vTvwEdlIP+aWvMNkPcl8h8DYeN5vNTqdzCNz5CIv4h7AE/AKcwUFbShJywQAAAABJRU5ErkJggg=="
@@ -142,24 +144,37 @@ function Get-PrettifyName {
         # If no period is found, use the whole name.
         $ProductName = $Name
     }
-    
+
     $PrettyName = ($ProductName -creplace  '([A-Z\W_]|\d+)(?<![a-z])',' $&').trim()
 
     return $PrettyName
 }
 
-# Gets the display name for a UWP app.
+# Gets the display name for a UWP app, resolving ms-resource: URIs when present.
 function Get-UWPApplicationName {
     param (
-        $app # The AppxPackage object
+        $app, # The AppxPackage object
+        [string]$manifestDisplayName # Raw DisplayName from AppxManifest.xml <Properties>
     )
-    # UWP properties are usually the best source
-    if ($app.DisplayName) { 
-        return $app.DisplayName.Trim()
-        #Write-Host($app)
+
+    # Prefer manifest DisplayName; resolve ms-resource: if needed
+    if ($manifestDisplayName) {
+        if ($manifestDisplayName.StartsWith('ms-resource:')) {
+            try {
+                $pm = New-Object Windows.Management.Deployment.PackageManager
+                $p = $pm.FindPackageForUser([string]::Empty, $app.PackageFullName)
+                if ($p.DisplayName -and -not $p.DisplayName.StartsWith('ms-resource:')) {
+                    return $p.DisplayName.Trim()
+                }
+            } catch { }
+        }
+    }
+
+    if ($app.DisplayName) {
+        return $app.DisplayName.Trim()        
     }
     if ($app.Name) { 
-        return Get-PrettifyName -Name $app.Name
+        return Get-PrettifyName -Name $app.Name 
     } # Often the package name, less ideal but a fallback
 
     return $null # Failed to get a name
@@ -174,10 +189,20 @@ function Get-ParseUWP {
     }
 
     $xmlContent = Get-Content $manifestPath -Raw -Encoding Default -ErrorAction Stop
-    
+    # Packages with no Application elements are runtime/dependency components with nothing to launch
+    if ($xmlContent -notmatch '<Application[\s>]') {
+        return $null
+    }
+
     $appId = "App" # Default, as it works for most packages.
     if ($xmlContent -match '<Application[^>]*Id\s*=\s*"([^"]+)"') {
         $appId = $Matches[1]
+    }
+
+    # Respect AppListEntry="none" — the same signal Windows Start Menu uses to hide background/system apps
+    $appBlockMatch = [regex]::Match($xmlContent, "(?s)<Application[^>]+\bId\s*=\s*`"$([regex]::Escape($appId))`".*?</Application>")
+    if ($appBlockMatch.Success -and $appBlockMatch.Value -match 'AppListEntry\s*=\s*"none"') {
+        return $null
     }
 
     $logoMatch = [regex]::Match($xmlContent, '<Properties.*?>.*?<Logo>(.*?)</Logo>.*?</Properties>', [System.Text.RegularExpressions.RegexOptions]::Singleline)
@@ -185,7 +210,10 @@ function Get-ParseUWP {
         $logo = $logoMatch.Groups[1].Value
     }
 
-    return $logo, $appId
+    $displayNameMatch = [regex]::Match($xmlContent, '<Properties.*?>.*?<DisplayName>(.*?)</DisplayName>.*?</Properties>', [System.Text.RegularExpressions.RegexOptions]::Singleline)
+    $manifestDisplayName = if ($displayNameMatch.Success) { $displayNameMatch.Groups[1].Value } else { $null }
+
+    return $logo, $appId, $manifestDisplayName
 }
 
 function Get-UWPBase64Logo {
@@ -519,26 +547,26 @@ if (Get-Command Get-AppxPackage -AllUsers -ErrorAction SilentlyContinue) {
             Where-Object {
                 $_.IsFramework -eq $false -and
                 $_.IsResourcePackage -eq $false -and
-                $_.SignatureKind -ne 'System' -and       # Exclude core system packages
-                $_.SignatureKind -ne 'Developer' -and     # Exclude "developer" packages
                 $_.InstallLocation                       # Must have an install location
             } |
             ForEach-Object {
-                $app = $_
-                $pathValue = "explorer.exe"
+                try{
+                    $app = $_
+                    $pathValue = "explorer.exe"
 
-                # Attempt to find logo and executable using Appxmanifest.xml
-                $logo, $appId = Get-ParseUWP -instLoc $app.InstallLocation
-                $launchArgs = "shell:AppsFolder\" + $app.PackageFamilyName + '!' + $appId
+                    # Attempt to find logo and executable using Appxmanifest.xml
+                    $logo, $appId, $manifestDisplayName = Get-ParseUWP -instLoc $app.InstallLocation
+                    $launchArgs = "shell:AppsFolder\" + $app.PackageFamilyName + '!' + $appId
 
-                if ($appId) { # check if we have appId
-                    # Get the best display name (UWP properties preferred)
-                    $name = Get-UWPApplicationName -exePath $exePath -app $app
-                    if ($name) {
-                        $base64 = Get-UWPBase64Logo -logo $logo -instLoc $app.InstallLocation
-                        Add-AppToListIfValid -Name $name -InputPath $pathValue -Source "uwp" -logoBase64 $base64 -launchArg $launchArgs
+                    if ($appId) { # check if we have appId
+                        # Get the best display name, resolving ms-resource: from manifest if present
+                        $name = Get-UWPApplicationName -app $app -manifestDisplayName $manifestDisplayName
+                        if ($name) {
+                            $base64 = Get-UWPBase64Logo -logo $logo -instLoc $app.InstallLocation
+                            Add-AppToListIfValid -Name $name -InputPath $pathValue -Source "uwp" -logoBase64 $base64 -launchArg $launchArgs
+                        }
                     }
-                }
+                } catch { } # Isolate failures per-app so one bad package doesn't abort the whole scan
             }
     } catch { } # Ignore errors during UWP scan
 }
