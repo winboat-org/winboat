@@ -15,6 +15,10 @@ Windows Registry Editor Version 5.00
     [HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Terminal Server]
     "RemoteAppEmptySessionDisconnectTimeout"=dword:00000002
 
+    ; Raise the RDP frame rate limit to 60 FPS (15 ms frame interval)
+    [HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Terminal Server\WinStations]
+    "DWMFRAMEINTERVAL"=dword:0000000f
+
     ; Disable Windows Snap for the guest user in RemoteApp and full desktop sessions
     [HKEY_CURRENT_USER\Control Panel\Desktop]
     "WindowArrangementActive"="0"
