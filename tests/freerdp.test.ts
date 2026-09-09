@@ -37,12 +37,15 @@ describe("FreeRDP selection", () => {
         await installation!.launch(["/app:program:C:\\Program Files\\Example\\app.exe", "/p:a b"]);
         expect(calls.at(-1)).toEqual({
             file: bundled,
-            args: ["/app:program:C:\\Program Files\\Example\\app.exe", "/p:a b"],
+            args: ["+auto-reconnect", "/app:program:C:\\Program Files\\Example\\app.exe", "/p:a b"],
         });
     });
     test("system opt-in retains xfreerdp3 priority", async () => {
         available = { xfreerdp3: "FreeRDP version 3.30.0", xfreerdp: "FreeRDP version 3.20.0" };
-        expect((await getFreeRDP(true))?.file).toBe("xfreerdp3");
+        const installation = await getFreeRDP(true);
+        expect(installation?.file).toBe("xfreerdp3");
+        await installation!.launch(["/v:example"]);
+        expect(calls.at(-1)?.args).toEqual(["/v:example"]);
     });
     test("skips FreeRDP 2 and detects the Flatpak client", async () => {
         available = { xfreerdp: "FreeRDP version 2.11.0", flatpak: "FreeRDP version 3.30.0" };
@@ -53,7 +56,10 @@ describe("FreeRDP selection", () => {
     });
     test("falls back to the bundle if a selected system client disappears", async () => {
         available = { [bundled]: "FreeRDP version 3.30.0" };
-        expect((await getFreeRDP(true))?.file).toBe(bundled);
+        const installation = await getFreeRDP(true);
+        expect(installation?.file).toBe(bundled);
+        await installation!.launch(["/v:example"]);
+        expect(calls.at(-1)?.args).toEqual(["+auto-reconnect", "/v:example"]);
     });
     test("does not silently select a system binary when the default bundle is broken", async () => {
         available = { xfreerdp: "FreeRDP version 3.30.0" };

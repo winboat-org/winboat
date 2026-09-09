@@ -58,7 +58,8 @@ export async function getFreeRDP(useSystemFreeRDP = false): Promise<FreeRDPInsta
     }
 
     try {
-        const bundled = new FreeRDPInstallation(await getBundledFreeRDPPath());
+        // Enable the fork's reconnect/resume handling only for our bundled client.
+        const bundled = new FreeRDPInstallation(await getBundledFreeRDPPath(), ["+auto-reconnect"]);
         const { stdout } = await bundled.exec(["/version"]);
         if (stdout.includes("version 3.")) return bundled;
     } catch (error) {

@@ -27,9 +27,9 @@ Windows Registry Editor Version 5.00
     [HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon]
     "AutoAdminLogon"="0"
 
-    ; Always use the server's keyboard layout, TODO: Investigate
+    ; Allow the RDP client to supply the host's keyboard layout
     [HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Keyboard Layout]
-    "IgnoreRemoteKeyboardLayout"=dword:00000001
+    "IgnoreRemoteKeyboardLayout"=dword:00000000
 
     ; Disable "Do you want your PC to be discoverable" prompt after each host system reboot
     [HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Network\NewNetworkWindowOff]
