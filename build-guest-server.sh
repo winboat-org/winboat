@@ -53,8 +53,33 @@ go build -ldflags="${LDFLAGS[*]}" -o "$DIST/oem/server/winboat_guest_server.exe"
 echo "Building guest server updater..."
 go build -ldflags="${LDFLAGS[*]}" -o "$DIST/oem/updater/winboat_guest_server_updater.exe" ./cmd/updater
 
-# Runtime assets that ship inside server\ (these get updated alongside the exe)
-cp scripts/apps.ps1 scripts/get-icon.ps1 scripts/time-sync.bat "$DIST/oem/server/scripts/"
+# Runtime assets that ship inside server\ (these get updated alongside the exe).
+# Keep this allowlist explicit because the Guest service runs as SYSTEM; source-only
+# helper or test scripts must never enter a release package by glob expansion.
+runtime_scripts=(
+    scripts/apps.ps1
+    scripts/apps-query.ps1
+    scripts/get-icon.ps1
+    scripts/time-sync.bat
+)
+cp "${runtime_scripts[@]}" "$DIST/oem/server/scripts/"
+
+# Guard against packaging drift: fail the build if the server binaries reference a
+# script that was not placed into the package. Without this, the server can
+# advertise a capability (e.g. apps-query-v1) whose backing script is missing on
+# the Guest, and every projected request fails at runtime.
+missing_scripts=0
+for referenced in $(grep -rhoE 'scripts\\\\[A-Za-z0-9._-]+\.(ps1|bat)' cmd | sed -E 's/.*scripts\\\\//' | sort -u); do
+    if [ ! -f "$DIST/oem/server/scripts/$referenced" ]; then
+        echo "✗ Packaged server is missing referenced script: $referenced"
+        missing_scripts=1
+    fi
+done
+if [ "$missing_scripts" -ne 0 ]; then
+    echo "✗ Guest server packaging is incomplete; aborting."
+    exit 1
+fi
+echo "✓ All server-referenced scripts are packaged"
 
 # Install-time assets that live at the OEM/install root
 cp install.bat nssm.exe RDPApps.reg "$DIST/oem/"

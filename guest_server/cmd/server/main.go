@@ -3,6 +3,7 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"log"
 	"net/http"
@@ -22,6 +23,11 @@ var (
 	Version        = "0.0.0"
 	CommitHash     = "n/a"
 	BuildTimestamp = "n/a"
+)
+
+const (
+	projectedAppsTimeout      = 10 * time.Second
+	maxProjectedResponseBytes = 256 << 10
 )
 
 type Metrics struct {
@@ -46,18 +52,61 @@ type RDPStatusResponse struct {
 }
 
 func getApps(w http.ResponseWriter, r *http.Request) {
-	output, err := executePowerShellScript(".\\scripts\\apps.ps1", true)
+	query, err := parseAppsRawQuery(r.URL.RawQuery)
 	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	if !query.projected {
+		// Preserve the query-less endpoint exactly for existing WinBoat clients.
+		// Only the advertised projected capability receives the new bounds.
+		output, err := executePowerShellScript(".\\scripts\\apps.ps1", true)
+		if err != nil {
+			http.Error(w, "Failed to execute script: "+err.Error(), http.StatusInternalServerError)
+			return
+		}
+		writeJSON(w, output)
+		return
+	}
+
+	ctx, cancel := context.WithTimeout(r.Context(), projectedAppsTimeout)
+	defer cancel()
+	output, err := executePowerShellScriptWithNamedArgsContextBounded(
+		ctx,
+		".\\scripts\\apps-query.ps1",
+		maxProjectedResponseBytes,
+		query.powerShellArgs()...,
+	)
+	if err != nil {
+		if ctx.Err() == context.DeadlineExceeded {
+			http.Error(w, "App discovery timed out", http.StatusGatewayTimeout)
+			return
+		}
 		http.Error(w, "Failed to execute script: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
+	writeJSON(w, output)
+}
+
+func writeJSON(w http.ResponseWriter, output []byte) {
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	w.WriteHeader(http.StatusOK)
 	w.Write(output)
 }
 
 func getHealth(w http.ResponseWriter, r *http.Request) {
-	response := map[string]string{"status": "ok"}
+	response := struct {
+		Status         string   `json:"status"`
+		APIVersion     int      `json:"apiVersion"`
+		Authentication string   `json:"authentication"`
+		Capabilities   []string `json:"capabilities"`
+	}{
+		Status:         "ok",
+		APIVersion:     1,
+		Authentication: "bearer",
+		Capabilities:   []string{appsQueryCapability},
+	}
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(response)
