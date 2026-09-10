@@ -143,10 +143,14 @@ export class DockerContainer extends ContainerManager {
             if (dockerComposeOutput) {
                 // Example output: "Docker Compose version v2.35.1"
                 // Example output 2: "Docker Compose version 2.36.2"
+                // Example output 3: "Docker Compose version dev"
                 const versionMatch = /(\d+\.\d+\.\d+)/.exec(dockerComposeOutput);
                 if (versionMatch) {
                     const majorVersion = Number.parseInt(versionMatch[1].split(".")[0], 10);
                     specs.dockerComposeInstalled = majorVersion >= 2;
+                } else if (dockerComposeOutput.includes("dev")) {
+                    // Development builds are assumed to be v2+
+                    specs.dockerComposeInstalled = true;
                 } else {
                     specs.dockerComposeInstalled = false; // No valid version found
                 }
