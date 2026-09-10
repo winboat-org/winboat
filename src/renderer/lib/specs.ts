@@ -47,7 +47,14 @@ export async function getSpecs() {
     // KVM check
     try {
         const cpuInfo = fs.readFileSync("/proc/cpuinfo", "utf8");
-        if ((cpuInfo.includes("vmx") || cpuInfo.includes("svm")) && fs.existsSync("/dev/kvm")) {
+
+        // ARM EL2 Check
+        const elLevel = (await execAsync("journalctl -k | grep -i 'EL2'")).stdout.trim();
+
+        if (
+            (cpuInfo.includes("vmx") || cpuInfo.includes("svm") || elLevel.includes("EL2")) &&
+            fs.existsSync("/dev/kvm")
+        ) {
             specs.kvmEnabled = true;
         }
     } catch (e) {
