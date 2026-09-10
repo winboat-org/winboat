@@ -15,7 +15,7 @@ export const DOCKER_DEFAULT_COMPOSE: ComposeConfig = {
     },
     services: {
         windows: {
-            image: "ghcr.io/dockur/windows:6.03",
+            image: "ghcr.io/dockur/windows:6.05",
             container_name: "WinBoat",
             environment: {
                 VERSION: "11",
