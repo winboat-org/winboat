@@ -122,9 +122,7 @@
                                 </div>
                                 installed
                                 <a
-                                    :href="containerRuntime === ContainerRuntimes.PODMAN
-                                        ? 'https://podman.io/getting-started/installation'
-                                        : 'https://docs.docker.com/engine/install/'"
+                                    :href="containerInstallDocLink"
                                     @click="openAnchorLink"
                                     target="_blank"
                                     class="text-violet-400 hover:underline ml-1"
@@ -201,7 +199,7 @@
                             </template>
 
                             <!-- Podman Specific Requirements -->
-                            <template v-else>
+                            <template v-else-if="containerRuntime == ContainerRuntimes.PODMAN">
                                 <li class="flex items-center gap-2">
                                     <span
                                         v-if="
@@ -216,6 +214,54 @@
                                     Podman Compose installed
                                     <a
                                         href="https://github.com/containers/podman-compose?tab=readme-ov-file#installation"
+                                        @click="openAnchorLink"
+                                        target="_blank"
+                                        class="text-violet-400 hover:underline ml-1"
+                                        >How?</a
+                                    >
+                                </li>
+                            </template>
+
+                            <!-- Incus Specific Requirements -->
+                            <template v-else-if="containerRuntime == ContainerRuntimes.INCUS">
+                                <li class="flex items-center gap-2">
+                                    <span
+                                        v-if="
+                                            containerSpecs &&
+                                            'skopeoInstalled' in containerSpecs &&
+                                            containerSpecs.skopeoInstalled
+                                        "
+                                        class="text-green-500"
+                                        >✔</span
+                                    >
+                                    <span v-else class="text-red-500">✘</span>
+                                    skopeo installed
+                                    <span class="text-gray-600"> (required to pull OCI images) </span>
+                                    <a
+                                        href="https://github.com/containers/skopeo/blob/main/install.md"
+                                        @click="openAnchorLink"
+                                        target="_blank"
+                                        class="text-violet-400 hover:underline ml-1"
+                                        >How?</a
+                                    >
+                                </li>
+
+                                <li class="flex items-center gap-2">
+                                    <span
+                                        v-if="
+                                            containerSpecs &&
+                                            'incusRunning' in containerSpecs &&
+                                            containerSpecs.incusRunning
+                                        "
+                                        class="text-green-500"
+                                        >✔</span
+                                    >
+                                    <span v-else class="text-red-500">✘</span>
+                                    Incus daemon running &amp; user in the
+                                    <span class="font-mono bg-neutral-700 rounded-md px-0.5">incus-admin</span> group
+                                    <span class="text-gray-600"> (Relog required) </span>
+                                    <a
+                                        href="https://linuxcontainers.org/incus/docs/main/howto/initialize/"
                                         @click="openAnchorLink"
                                         target="_blank"
                                         class="text-violet-400 hover:underline ml-1"
@@ -1054,10 +1100,22 @@ function continueFromPrerequisites() {
     currentStepIdx.value++;
 }
 
+const containerInstallDocLink = computed(() => {
+    switch (containerRuntime.value) {
+        case ContainerRuntimes.PODMAN:
+            return "https://podman.io/getting-started/installation";
+        case ContainerRuntimes.INCUS:
+            return "https://linuxcontainers.org/incus/docs/main/installing/";
+        default:
+            return "https://docs.docker.com/engine/install/";
+    }
+});
+
 function containerInstalled(containerSpecs: ContainerSpecs | undefined) {
     if (!containerSpecs) return false;
     if ("dockerInstalled" in containerSpecs) return containerSpecs.dockerInstalled;
     if ("podmanInstalled" in containerSpecs) return containerSpecs.podmanInstalled;
+    if ("incusInstalled" in containerSpecs) return containerSpecs.incusInstalled;
     return false;
 }
 
