@@ -229,6 +229,8 @@ export class Winboat {
     // Variables
     isOnline: Ref<boolean> = ref(false);
     isUpdatingGuestServer: Ref<boolean> = ref(false);
+    /** Reason the last Guest Server update failed, or null if it succeeded. */
+    guestServerUpdateError: Ref<string | null> = ref(null);
     containerStatus: Ref<ContainerStatus> = ref(ContainerStatus.EXITED);
     containerActionLoading: Ref<boolean> = ref(false);
     rdpConnected: Ref<boolean> = ref(false);
@@ -308,7 +310,11 @@ export class Winboat {
                 logger.info(`Winboat Guest API went ${this.isOnline.value ? "online" : "offline"}`);
 
                 if (this.isOnline.value) {
-                    await this.checkVersionAndUpdateGuestServer();
+                    try {
+                        await this.checkVersionAndUpdateGuestServer();
+                    } catch {
+                        /* already logged, and surfaced via guestServerUpdateError */
+                    }
                 }
             }
         }, HEALTH_WAIT_MS);
@@ -793,6 +799,7 @@ export class Winboat {
         //    applies it atomically and rolls back if the new server fails to come
         //    up. Auth is the shared token; the raw zip is the request body.
         this.isUpdatingGuestServer.value = true;
+        this.guestServerUpdateError.value = null;
         const zipPath = guestServerUpdateZipPath();
         logger.info(`Sending update payload to the Guest Server Updater: ${zipPath}`);
 
@@ -812,6 +819,7 @@ export class Winboat {
         } catch (e) {
             logger.error("Failed to apply Guest Server update");
             logger.error(e);
+            this.guestServerUpdateError.value = e instanceof Error ? e.message : String(e);
             this.isUpdatingGuestServer.value = false;
             throw e;
         }
@@ -830,6 +838,7 @@ export class Winboat {
             logger.info("Update completed, Winboat Guest Server is online");
         } else {
             logger.error("Guest Server did not report healthy within the timeout after update");
+            this.guestServerUpdateError.value = "The Guest Server did not come back online after the update.";
         }
 
         this.isUpdatingGuestServer.value = false;

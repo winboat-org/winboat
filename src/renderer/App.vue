@@ -29,7 +29,12 @@
 
         <!-- Updater -->
         <dialog ref="updateDialog">
-            <Icon class="text-indigo-400 size-12" icon="mdi:cloud-upload"></Icon>
+            <Icon
+                v-if="winboat?.guestServerUpdateError.value"
+                class="text-red-400 size-12"
+                icon="clarity:warning-solid"
+            ></Icon>
+            <Icon v-else class="text-indigo-400 size-12" icon="mdi:cloud-upload"></Icon>
             <template v-if="manualUpdateRequired">
                 <h3 class="mt-2">Manual Guest Server Update Required</h3>
                 <div class="max-w-[60vw]">
@@ -37,6 +42,9 @@
                         >WinBoat has encountered an issue while trying to update the Guest Server automatically. Please
                         follow the steps below to manually update it:</strong
                     >
+                    <p v-if="winboat?.guestServerUpdateError.value" class="text-sm text-red-400/90 break-words">
+                        {{ winboat.guestServerUpdateError.value }}
+                    </p>
                     <ol class="mt-2 list-decimal list-inside">
                         <li>
                             Use VNC over at
@@ -71,14 +79,17 @@
                 </div>
             </template>
 
-            <template v-else>
-                <h3 class="mt-2" v-if="winboat?.isUpdatingGuestServer.value">Updating Guest Server</h3>
-                <h3 class="mt-2" v-else>Guest Server update successful!</h3>
-                <p v-if="winboat?.isUpdatingGuestServer.value" class="max-w-[40vw]">
+            <template v-else-if="winboat?.isUpdatingGuestServer.value">
+                <h3 class="mt-2">Updating Guest Server</h3>
+                <p class="max-w-[40vw]">
                     The guest is currently running an outdated version of the WinBoat Guest Server. Please wait while we
                     update it to the current version.
                 </p>
-                <p v-else class="max-w-[40vw]">
+            </template>
+
+            <template v-else>
+                <h3 class="mt-2">Guest Server update successful!</h3>
+                <p class="max-w-[40vw]">
                     The WinBoat Guest Server has been updated successfully! You can now close this dialog and continue
                     using the application.
                 </p>
@@ -219,7 +230,9 @@ onMounted(async () => {
                     clearTimeout(updateTimeout);
                     updateTimeout = null;
                 }
-                manualUpdateRequired.value = false;
+                // A failed update still needs the manual steps. Clearing this on
+                // failure used to replace them with a success message.
+                manualUpdateRequired.value = Boolean(winboat?.guestServerUpdateError.value);
             }
         },
     );
