@@ -12,7 +12,12 @@ import { openLink } from "../utils/openLink";
 import { MultiMonitorMode, WinboatConfig } from "./config";
 import { HOST_QMP_PORT, HOST_RDP_PORT, NOVNC_URL, WINBOAT_API_URL, WINBOAT_DIR, WINBOAT_UPDATE_URL } from "./constants";
 import { ContainerRuntimes, createContainer } from "./containers/common";
-import { ContainerManager, ContainerStatus, isStaleContainerError } from "./containers/container";
+import {
+    ContainerManager,
+    ContainerStatus,
+    isStaleContainerError,
+    summarizeContainerError,
+} from "./containers/container";
 import { ExecFileAsyncError } from "./exec-helper";
 import { QMPManager } from "./qmp";
 
@@ -231,6 +236,8 @@ export class Winboat {
     isUpdatingGuestServer: Ref<boolean> = ref(false);
     containerStatus: Ref<ContainerStatus> = ref(ContainerStatus.EXITED);
     containerActionLoading: Ref<boolean> = ref(false);
+    containerError: Ref<string | null> = ref(null);
+    containerRecovered: Ref<boolean> = ref(false);
     rdpConnected: Ref<boolean> = ref(false);
     metrics: Ref<Metrics> = ref<Metrics>({
         cpu: {
@@ -503,6 +510,12 @@ export class Winboat {
     async startContainer() {
         logger.info("Starting WinBoat container...");
         this.containerActionLoading.value = true;
+        this.containerError.value = null;
+        this.containerRecovered.value = false;
+        // Release the sticky ERROR so the poller can resume; nothing else clears it
+        if (this.containerStatus.value === ContainerStatus.ERROR) {
+            this.containerStatus.value = ContainerStatus.UNKNOWN;
+        }
 
         try {
             // Start the container if it exists and recreate it if starting it runs into an error
@@ -513,9 +526,10 @@ export class Winboat {
                 } catch (e) {
                     if (isStaleContainerError(e)) {
                         logger.warn(
-                            "[startContainer] Container appears to be stale/malfunctioning (e.g. a stale USB passthrough reference). Attempting to recreate it...",
+                            `[startContainer] Container appears to be stale/malfunctioning (${summarizeContainerError(e)}). Attempting to recreate it...`,
                         );
                         await this.recreateContainer();
+                        this.containerRecovered.value = true;
                     } else {
                         throw e;
                     }
@@ -543,6 +557,7 @@ export class Winboat {
             logger.error("There was an error performing the container action.");
             logger.error(e);
             this.containerStatus.value = ContainerStatus.ERROR;
+            this.containerError.value = summarizeContainerError(e);
             throw e;
         } finally {
             this.containerActionLoading.value = false;
@@ -563,15 +578,22 @@ export class Winboat {
     async restartContainer() {
         logger.info("Restarting WinBoat container...");
         this.containerActionLoading.value = true;
+        this.containerError.value = null;
+        this.containerRecovered.value = false;
+        // Release the sticky ERROR so the poller can resume; nothing else clears it
+        if (this.containerStatus.value === ContainerStatus.ERROR) {
+            this.containerStatus.value = ContainerStatus.UNKNOWN;
+        }
         try {
             try {
                 await this.containerMgr!.container("restart");
             } catch (e) {
                 if (isStaleContainerError(e)) {
                     logger.warn(
-                        "[restartContainer] Container appears to be stale/malfunctioning (e.g. a stale USB passthrough reference). Attempting to recreate it...",
+                        `[restartContainer] Container appears to be stale/malfunctioning (${summarizeContainerError(e)}). Attempting to recreate it...`,
                     );
                     await this.recreateContainer();
+                    this.containerRecovered.value = true;
                 } else {
                     throw e;
                 }
@@ -581,6 +603,7 @@ export class Winboat {
             logger.error("There was an error restarting the container.");
             logger.error(e);
             this.containerStatus.value = ContainerStatus.ERROR;
+            this.containerError.value = summarizeContainerError(e);
             throw e;
         } finally {
             this.containerActionLoading.value = false;

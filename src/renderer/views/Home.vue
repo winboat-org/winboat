@@ -70,6 +70,27 @@
                             </button>
                         </p>
                     </div>
+
+                    <!-- The actual reason the last container action failed -->
+                    <div
+                        v-if="winboat.containerError.value"
+                        class="flex flex-row items-start gap-1.5 mt-1 text-red-400/90"
+                    >
+                        <Icon class="size-5 flex-none translate-y-0.5" icon="clarity:warning-solid"></Icon>
+                        <p class="!my-0 text-sm max-w-[36rem] break-words">{{ winboat.containerError.value }}</p>
+                    </div>
+
+                    <!-- Shown when a broken container was repaired automatically -->
+                    <div
+                        v-if="winboat.containerRecovered.value"
+                        class="flex flex-row items-start gap-1.5 mt-1 text-amber-400/90"
+                    >
+                        <Icon class="size-5 flex-none translate-y-0.5" icon="mdi:refresh"></Icon>
+                        <p class="!my-0 text-sm max-w-[36rem] break-words">
+                            The container was stale and has been recreated from your compose file. Your Windows disk
+                            was not touched.
+                        </p>
+                    </div>
                 </div>
             </div>
 
@@ -84,7 +105,7 @@
                         winboat.containerStatus.value === ContainerStatus.UNKNOWN ||
                         winboat.containerStatus.value === ContainerStatus.ERROR
                     "
-                    @click="winboat.startContainer()"
+                    @click="runContainerAction(() => winboat.startContainer())"
                 >
                     <Icon class="w-20 h-20 text-green-300" icon="mingcute:play-fill"></Icon>
                 </button>
@@ -100,7 +121,7 @@
                     title="Restart"
                     class="generic-hover"
                     v-if="winboat.containerStatus.value === ContainerStatus.RUNNING"
-                    @click="winboat.restartContainer()"
+                    @click="runContainerAction(() => winboat.restartContainer())"
                 >
                     <Icon class="w-20 h-20 text-orange-300" icon="mingcute:refresh-3-line"></Icon>
                 </button>
@@ -213,6 +234,15 @@ import { capitalizeFirstLetter } from "../utils/capitalize";
 import { openAnchorLink, openContainerLogFile } from "../utils/openLink";
 
 const winboat = Winboat.getInstance();
+
+// Container actions rethrow; the reason is surfaced via winboat.containerError
+async function runContainerAction(action: () => Promise<void>) {
+    try {
+        await action();
+    } catch {
+        /* surfaced via winboat.containerError */
+    }
+}
 const compose = ref<ComposeConfig | null>(null);
 const wallpaper = ref("");
 
