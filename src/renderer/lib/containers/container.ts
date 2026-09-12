@@ -41,12 +41,17 @@ export enum ContainerStatus {
 
 // Errors which usually indicate that the container is in a stale/broken state,
 // e.g. because it references a passed-through USB device that is no longer
-// present on the host. In these cases the container can't be started again and
-// needs to be recreated from the compose file
+// present on the host, or a network that has since been pruned. In these cases
+// the container can't be started again and needs to be recreated from the
+// compose file. Patterns must stay specific: Docker reuses its "failed to set up
+// container networking" prefix for port binding failures, which are not stale.
 const STALE_CONTAINER_ERROR_PATTERNS = [
     /cannot stat `[^`]*`:?\s*no such file or directory/i,
+    /error gathering device information while adding custom device/i,
     /oci runtime attempted to invoke a command that was not found/i,
     /no such device or address/i,
+    /network [^\s"']+ not found/i,
+    /unable to find network/i,
 ];
 
 function getErrorText(error: unknown): string {
@@ -69,4 +74,25 @@ function getErrorText(error: unknown): string {
 export function isStaleContainerError(error: unknown): boolean {
     const text = getErrorText(error);
     return STALE_CONTAINER_ERROR_PATTERNS.some(pattern => pattern.test(text));
+}
+
+/**
+ * Condenses a raw container-runtime error into a single line for the UI, by
+ * preferring the daemon's own message over the command wrapper around it.
+ */
+export function summarizeContainerError(error: unknown): string {
+    const lines = getErrorText(error)
+        .split("\n")
+        .map(line => line.trim())
+        .filter(Boolean);
+
+    if (!lines.length) return "Unknown error";
+
+    const daemonLine = lines.find(line => /error response from daemon:/i.test(line));
+    if (daemonLine) {
+        return daemonLine.replace(/^error response from daemon:\s*/i, "");
+    }
+
+    const meaningful = lines.find(line => !/^command failed:/i.test(line));
+    return meaningful ?? lines[0];
 }
