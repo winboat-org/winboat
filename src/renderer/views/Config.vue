@@ -313,7 +313,72 @@
         </div>
         <div>
             <x-label class="mb-4 text-neutral-300">General</x-label>
+            
             <div class="flex flex-col gap-4">
+
+                <!-- Desktop Size -->
+                <x-card
+                    class="flex relative z-30 flex-row justify-between items-center p-2 py-3 my-0 w-full backdrop-blur-xl backdrop-brightness-150 bg-neutral-800/20"
+                >
+                    <div>
+                        <div class="flex flex-row gap-2 items-center mb-2">
+                            <Icon class="inline-flex text-violet-400 size-8" icon="uil:desktop"></Icon>
+                            <h1 class="my-0 text-lg font-semibold">Desktop Size</h1>
+                        </div>
+                        <p class="text-neutral-400 text-[0.9rem] !pt-0 !mt-0">
+                            Controls what size the Windows desktop interface is.
+                        </p>
+                    </div>
+                    <div class="flex flex-row gap-2 justify-center items-center">
+                        <x-select
+                            class="w-200"
+                            @change="(e: any) => (wbConfig.config.desktopSize = String(e.detail.newValue))"
+                        >
+                            <x-menu>
+                                <x-menuitem value="fullscreen" :toggled="wbConfig.config.desktopSize === 'fullscreen'">
+                                    <x-label>Fullscreen</x-label>
+                                </x-menuitem>
+                                <x-menuitem value="3840x2160" :toggled="wbConfig.config.desktopSize === '3840x2160'">
+                                    <x-label>3840x2160</x-label>
+                                </x-menuitem>
+                                <x-menuitem value="2560x1440" :toggled="wbConfig.config.desktopSize === '2560x1440'">
+                                    <x-label>2560x1440</x-label>
+                                </x-menuitem>
+                                <x-menuitem value="1920x1080" :toggled="wbConfig.config.desktopSize === '1920x1080'">
+                                    <x-label>1920x1080</x-label>
+                                </x-menuitem>
+                                <x-menuitem value="1680x1050" :toggled="wbConfig.config.desktopSize === '1680x1050'">
+                                    <x-label>1680x1050</x-label>
+                                </x-menuitem>
+                                <x-menuitem value="1600x900" :toggled="wbConfig.config.desktopSize === '1600x900'">
+                                    <x-label>1600x900</x-label>
+                                </x-menuitem>
+                                <x-menuitem value="1536x864" :toggled="wbConfig.config.desktopSize === '1536x864'">
+                                    <x-label>1536x864</x-label>
+                                </x-menuitem>
+                                <x-menuitem value="1440x900" :toggled="wbConfig.config.desktopSize === '1440x900'">
+                                    <x-label>1440x900</x-label>
+                                </x-menuitem>
+                                <x-menuitem value="1366x768" :toggled="wbConfig.config.desktopSize === '1366x768'">
+                                    <x-label>1366x768</x-label>
+                                </x-menuitem>
+                                <x-menuitem value="1280x960" :toggled="wbConfig.config.desktopSize === '1280x960'">
+                                    <x-label>1280x960</x-label>
+                                </x-menuitem>
+                                <x-menuitem value="1280x720" :toggled="wbConfig.config.desktopSize === '1280x720'">
+                                    <x-label>1280x720</x-label>
+                                </x-menuitem>
+                                <x-menuitem value="1024x768" :toggled="wbConfig.config.desktopSize === '1024x768'">
+                                    <x-label>1024x768</x-label>
+                                </x-menuitem>
+                                <x-menuitem value="800x600" :toggled="wbConfig.config.desktopSize === '800x600'">
+                                    <x-label>800x600</x-label>
+                                </x-menuitem>
+                            </x-menu>
+                        </x-select>
+                    </div>
+                </x-card>
+
                 <!-- Display Scaling -->
                 <ConfigCard
                     class="relative z-10"

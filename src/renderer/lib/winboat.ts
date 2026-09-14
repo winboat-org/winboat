@@ -723,7 +723,8 @@ export class Winboat {
 
         if (app.Path == InternalApps.WINDOWS_DESKTOP) {
             args = args.concat([
-                "+f",
+                this.#wbConfig?.config.desktopSize == "fullscreen" ? "+f" : "",
+                `/size:${this.#wbConfig?.config.desktopSize}`,
                 this.#wbConfig?.config.smartcardEnabled ? "/smartcard" : "",
                 `/scale:${this.#wbConfig?.config.scale ?? 100}`,
             ]);
