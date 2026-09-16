@@ -38,9 +38,10 @@ export const PODMAN_DEFAULT_COMPOSE: ComposeConfig = {
             volumes: [
                 "data:/storage",
                 "${HOME}:/shared",
+                "/dev/bus/usb:/dev/bus/usb", // QEMU Dynamic USB Passthrough
                 "./oem:/oem",
             ],
-            devices: ["/dev/kvm", "/dev/bus/usb"],
+            devices: ["/dev/kvm"],
         },
     },
 };
