@@ -1129,7 +1129,7 @@ onMounted(async () => {
 
     // Set default shared folder path to home directory
     sharedFolderPath.value = os.homedir();
-    heliosAvailable.value = fs.existsSync(path.join(guestServerOemDir(), "helios", "Install-Helios.ps1"));
+    heliosAvailable.value = fs.existsSync(path.join(guestServerOemDir(), "helios", "HeliosSetup.exe"));
 
     renderDevices.value = await getRenderDevices();
     renderDevice.value = renderDevices.value[0]?.path || "";
