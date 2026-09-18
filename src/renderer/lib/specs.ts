@@ -47,7 +47,21 @@ export async function getSpecs() {
     // KVM check
     try {
         const cpuInfo = fs.readFileSync("/proc/cpuinfo", "utf8");
-        if ((cpuInfo.includes("vmx") || cpuInfo.includes("svm")) && fs.existsSync("/dev/kvm")) {
+
+        let el2Supported = false;
+        if (process.arch === "arm64") {
+            try {
+                const journal = (await execAsync("journalctl -k -q -g EL2 || true")).stdout;
+                el2Supported = journal.toLowerCase().includes("el2");
+            } catch (e) {
+                console.error("Error checking journal for EL2 support:", e);
+            }
+        }
+
+        if (
+            (cpuInfo.includes("vmx") || cpuInfo.includes("svm") || el2Supported) &&
+            fs.existsSync("/dev/kvm")
+        ) {
             specs.kvmEnabled = true;
         }
     } catch (e) {
