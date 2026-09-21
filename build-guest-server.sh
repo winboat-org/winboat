@@ -62,6 +62,6 @@ cp install.bat nssm.exe RDPApps.reg "$DIST/oem/"
 # The update payload is what lands in C:\Program Files\WinBoat\server —
 # the Guest Server Updater extracts it back into server\ on update. Built from an
 # explicit directory so no source files or stale archives leak into the package.
-( cd "$DIST/oem/server" && zip -r -q "../../update/winboat_guest_server.zip" . )
+( cd "$DIST/oem/server" && zip -r -X -q "../../update/winboat_guest_server.zip" . )
 
 echo "Guest binaries built into guest_server/$DIST"

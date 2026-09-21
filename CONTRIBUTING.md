@@ -10,7 +10,7 @@ This document outlines the general contribution guidelines that apply to WinBoat
 
 ## General
 
-1. **Avoid vibe-coding large features** - While probably most of us use AI while coding in our day to day lives, you should try to use it in a clever and targetted manner. Avoid submitting large vibe-coded features, because in 99% of the cases they will not behave as expected. These kinds of PR-s drain our energy and time that could be focused on something more useful, because what took a few seconds for the AI assistant to pump out will take us hours to test, discuss, and ultimately scrap because it doesn't take into account half the things a real programmer probably would. If you made heavy use of AI in your pull request, **indicate it**.
+1. **Avoid vibe-coding large features** - While probably most of us use AI while coding in our day to day lives, you should try to use it in a clever and targeted manner. Avoid submitting large vibe-coded features, because in 99% of the cases they will not behave as expected. These kinds of PR-s drain our energy and time that could be focused on something more useful, because what took a few seconds for the AI assistant to pump out will take us hours to test, discuss, and ultimately scrap because it doesn't take into account half the things a real programmer probably would. If you made heavy use of AI in your pull request, **indicate it**.
 
 2. **Do not break existing code** - WinBoat aims to provide a seamless user experience, so please avoid the breakage of any existing features to the best of your abilities. Ensure that folks potentially upgrading to a new version that includes your changes won't have any problems, and address any migrations if they're required.
 

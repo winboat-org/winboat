@@ -18,7 +18,14 @@
         "icon": "icons/winboat_logo.svg",
         "target": ["appimage", "deb", "rpm", "tar.bz2"],
         "category": "Utility",
-        "artifactName": "${name}-${version}-${arch}.${ext}"
+        "artifactName": "${name}-${version}-${arch}.${ext}",
+        "desktop": {
+            "entry": {
+                "Comment[ru]": "Запуск приложений Windows в Linux с бесшовной интеграцией",
+                "Keywords": "windows;vm;virtual machine;virtualization;rdp;freerdp;remoteapp;docker;kvm;apps;",
+                "Keywords[ru]": "windows;vm;rdp;freerdp;docker;kvm;виртуальная машина;виртуализация;приложения windows;программы;"
+            }
+        }
     },
     "files": [
         {
