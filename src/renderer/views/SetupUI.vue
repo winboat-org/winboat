@@ -1164,8 +1164,22 @@ const installFolderErrors = computedAsync(async () => {
         errors.push("The selected install location is not writable");
     }
 
+    // Create /winboat
+    const winboatPath = path.join(parentPath, "winboat");
+    const isWinboatPathCreated = false;
+    try {
+        fs.mkdirSync(winboatPath, { recursive: true });
+        isWinboatPathCreated = true;
+        console.log("Created winboat directory at", winboatPath);
+    } catch (err) {
+        console.error(err);
+    }
+
     // Check if we have enough disk space
-    const diskSpace = await checkDiskSpace(parentPath);
+    const diskSpace = await checkDiskSpace(isWinboatPathCreated ? winboatPath : parentPath);
+    if (isWinboatPathCreated) {
+        await fs.rm(winboatPath, { recursive: true });
+    }
     const freeGB = Math.floor(diskSpace.free / (1024 * 1024 * 1024));
     if (freeGB < MIN_DISK_GB) {
         errors.push(
