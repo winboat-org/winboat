@@ -772,7 +772,15 @@
                             "
                             class="flex flex-col h-full items-center justify-center gap-4"
                         >
-                            <x-throbber class="size-16"></x-throbber>
+                            <!-- Once noVNC is reachable, show the Windows display live instead of a spinner.
+                                 The key makes the iframe reconnect when the install state changes. -->
+                            <iframe
+                                v-if="linkableInstallSteps.includes(installState)"
+                                :key="installState"
+                                :src="NOVNC_URL"
+                                class="w-full aspect-video rounded-lg border border-neutral-700 bg-black"
+                            ></iframe>
+                            <x-throbber v-else class="size-16"></x-throbber>
                             <x-label
                                 v-if="installState !== InstallStates.MONITORING_PREINSTALL"
                                 class="text-lg text-gray-400 text-center"
