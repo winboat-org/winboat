@@ -243,6 +243,13 @@ function Get-UWPBase64Logo {
 $apps = [System.Collections.Generic.List[PSCustomObject]]::new()
 # Store normalized (lowercase) full paths for case-insensitive duplicate checking
 $addedPaths = [System.Collections.Generic.HashSet[string]]::new([System.StringComparer]::OrdinalIgnoreCase)
+# Tracks display names (lowercase) already added, so x86/x64 builds of the same
+# tool (System32 vs SysWOW64, identical FileDescription) don't show up twice.
+$addedNames = [System.Collections.Generic.HashSet[string]]::new([System.StringComparer]::OrdinalIgnoreCase)
+# Tracks exe/msc basenames (lowercase) already added for OS binaries. The same
+# tool under C:\Windows can expose localized FileDescriptions (e.g. "Administrator
+# ODBC" vs "ODBC Administrator" for odbcad32.exe), so name dedup does not catch it.
+$addedBasenames = [System.Collections.Generic.HashSet[string]]::new([System.StringComparer]::OrdinalIgnoreCase)
 
 # Helper function to validate and add an app to the list if it's unique
 function Add-AppToListIfValid {
@@ -311,6 +318,31 @@ function Add-AppToListIfValid {
         return # Skip if this exact executable path has already been added
     }
 
+    # 4b. Deduplicate by display name (case-insensitive). Windows ships x86/x64
+    # pairs of some tools (System32 vs SysWOW64) with identical FileDescription,
+    # which path-based dedup does not catch. Prefer the 64-bit (non-SysWOW64) build.
+    $nameKey = $Name.Trim().ToLowerInvariant()
+    if ($addedNames.Contains($nameKey)) {
+        $existing = $apps | Where-Object { $_.Name -and $_.Name.Trim().ToLowerInvariant() -eq $nameKey } | Select-Object -First 1
+        if ($existing -and $existing.Path -like "*\SysWOW64\*" -and $fullPath -notlike "*\SysWOW64\*") {
+            # Replace the 32-bit entry with this 64-bit one; drop its path/basename
+            # marks so the common add path below re-marks them cleanly
+            $apps.Remove($existing) | Out-Null
+            $addedPaths.Remove(([string]$existing.Path).ToLowerInvariant()) | Out-Null
+            $addedBasenames.Remove(([System.IO.Path]::GetFileName([string]$existing.Path)).ToLowerInvariant()) | Out-Null
+        } else {
+            return # Same-name entry already listed; first one wins
+        }
+    }
+
+    # 4c. Localized duplicate: same OS binary basename under the Windows directory
+    # is the same entry regardless of localized display name. Restricted to
+    # C:\Windows so third-party apps with same-named exes are never merged.
+    $baseNameKey = [System.IO.Path]::GetFileName($fullPath).ToLowerInvariant()
+    if ($fullPath -like "*\Windows\*" -and $addedBasenames.Contains($baseNameKey)) {
+        return
+    }
+
     # 5. Get Icon
     $icon = Get-ApplicationIcon -targetPath $fullPath
 
@@ -323,8 +355,10 @@ function Add-AppToListIfValid {
         Source = $Source
     })
 
-    # 7. Mark Path as Added
+    # 7. Mark Path, Name and Basename as Added
     $addedPaths.Add($normalizedPathKey) | Out-Null
+    $addedNames.Add($nameKey) | Out-Null
+    $addedBasenames.Add($baseNameKey) | Out-Null
 }
 
 
