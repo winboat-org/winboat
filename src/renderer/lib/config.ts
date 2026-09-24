@@ -71,6 +71,7 @@ export type WinboatConfigObj = {
     containerRuntime: ContainerRuntimes;
     versionData: WinboatVersionData;
     appsSortOrder: string;
+    appsFilterMode: string;
 };
 
 const currentVersion = new WinboatVersion(import.meta.env.VITE_APP_VERSION);
@@ -94,6 +95,7 @@ const defaultConfig: WinboatConfigObj = {
         current: currentVersion
     },
     appsSortOrder: 'name',
+    appsFilterMode: 'apps',
 };
 
 function isRdpArg(value: unknown): value is RdpArg {
