@@ -222,6 +222,14 @@
                                         >How?</a
                                     >
                                 </li>
+                                <li class="flex items-start gap-2">
+                                    <Icon icon="mdi:alert" class="size-5 text-amber-400 shrink-0"></Icon>
+                                    <span class="text-sm text-amber-400">
+                                        Note: USB passthrough is not supported on Podman, and upcoming GPU
+                                        acceleration (Helios) will require Docker. Choose Docker for the full
+                                        feature set.
+                                    </span>
+                                </li>
                             </template>
                             <li class="flex items-center gap-2">
                                 <span v-if="specs.freeRDP3Installed" class="text-green-500">✔</span>

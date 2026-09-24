@@ -85,7 +85,11 @@ You can download the latest Linux builds under the [Releases](https://github.com
 ## Known Issues About Container Runtimes
 
 - Docker Desktop is **unsupported** for now
-- USB passthrough via Podman is currently **unsupported**
+
+| Feature                               | Docker |            Podman             |
+| ------------------------------------- | :----: | :---------------------------: |
+| USB passthrough                       |   ✔    |         ✘ unsupported         |
+| GPU acceleration (Helios, upcoming)   |   ✔    | ✘ Docker-only at introduction |
 
 ## Building WinBoat
 
