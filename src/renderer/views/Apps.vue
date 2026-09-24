@@ -213,6 +213,14 @@
             <div v-else class="flex justify-center items-center mt-40">
                 <x-throbber class="w-16 h-16"></x-throbber>
             </div>
+            <div
+                v-if="apps.length && !computedApps.length"
+                class="flex flex-col justify-center items-center gap-2 mt-40 text-neutral-400"
+            >
+                <Icon class="size-16" icon="mdi:magnify"></Icon>
+                <x-label>No apps found</x-label>
+                <x-label class="text-xs">Try a different search or switch the filter to "All"</x-label>
+            </div>
             <WBContextMenu key="contextMenu" ref="contextMenuRef" @hide="onContextMenuHide">
                 <WBMenuItem @click="launchApp">
                     <Icon class="size-4" icon="mdi:play-circle-outline"></Icon>
