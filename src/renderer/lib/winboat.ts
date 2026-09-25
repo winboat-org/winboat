@@ -11,18 +11,16 @@ import { createLogger } from "../utils/log";
 import { openLink } from "../utils/openLink";
 import { MultiMonitorMode, WinboatConfig } from "./config";
 import { HOST_QMP_PORT, HOST_RDP_PORT, NOVNC_URL, WINBOAT_API_URL, WINBOAT_DIR, WINBOAT_UPDATE_URL } from "./constants";
-import { ContainerRuntimes, createContainer } from "./containers/common";
+import { createContainer } from "./containers/common";
 import { ContainerManager, ContainerStatus, isStaleContainerError } from "./containers/container";
 import { ExecFileAsyncError } from "./exec-helper";
 import { QMPManager } from "./qmp";
+import { RemovalManager } from "./removal";
 
 const nodeFetch: typeof import("node-fetch").default = require("node-fetch");
 const fs: typeof import("fs") = require("node:fs");
 const path: typeof import("path") = require("node:path");
-const { promisify }: typeof import("util") = require("node:util");
-const { exec }: typeof import("child_process") = require("node:child_process");
 
-const execAsync = promisify(exec);
 const USAGE_PATH = path.join(WINBOAT_DIR, "appUsage.json");
 export const logger = createLogger(path.join(WINBOAT_DIR, "winboat.log"));
 
@@ -252,6 +250,8 @@ export class Winboat {
     appMgr: AppManager | null = null;
     qmpMgr: QMPManager | null = null;
     containerMgr: ContainerManager | null = null;
+    /** The most recent removal manager; while it is running, `createRemovalManager` hands it back instead of a second one */
+    #activeRemovalManager: RemovalManager | null = null;
 
     static getInstance() {
         Winboat.instance ??= new Winboat();
@@ -653,42 +653,51 @@ export class Winboat {
         this.containerActionLoading.value = false;
     }
 
-    async resetWinboat() {
-        console.info("Resetting Winboat...");
+    /**
+     * The most recent {@link RemovalManager}, if one was ever created. Reattach to it
+     * (e.g. on view remount) to observe a run that is still in flight.
+     */
+    get activeRemovalManager(): RemovalManager | null {
+        return this.#activeRemovalManager;
+    }
 
-        // 1. Stop container
-        await this.stopContainer();
-        console.info("Stopped container");
-
-        // 2. Remove the container
-
-        await this.containerMgr!.remove();
-        console.info("Removed container");
-
-        // 3. Remove the container volume or folder
-        const compose = Winboat.readCompose(this.containerMgr!.composeFilePath);
-        const storage = compose.services.windows.volumes.find(vol => vol.includes("/storage"));
-        if (storage?.startsWith("data:")) {
-            if (this.#wbConfig?.config.containerRuntime !== ContainerRuntimes.DOCKER) {
-                logger.error("Volume not supported on podman runtime");
-            }
-            // In this case we have a volume (legacy)
-            await execAsync("docker volume rm winboat_data");
-            console.info("Removed volume");
-        } else {
-            const storageFolder = storage?.split(":").at(0) ?? null;
-            if (storageFolder && fs.existsSync(storageFolder)) {
-                fs.rmSync(storageFolder, { recursive: true, force: true });
-                console.info(`Removed storage folder at ${storageFolder}`);
-            } else {
-                console.warn("Storage folder does not exist, skipping removal");
-            }
+    /**
+     * Creates a {@link RemovalManager} wired to this singleton's container
+     * manager, configured runtime and data directory. The manager runs the
+     * "Reset Winboat & Remove VM" flow as 5 observable steps and reports
+     * progress, live log lines, errors and a final summary through its emitter.
+     *
+     * While a removal is still running, the existing manager is returned so callers
+     * reattach to the in-flight flow instead of starting a second one.
+     */
+    createRemovalManager(): RemovalManager {
+        if (this.#activeRemovalManager?.running) {
+            logger.info("[createRemovalManager] Reattaching to the in-flight removal manager");
+            return this.#activeRemovalManager;
         }
 
-        // 4. Remove WinBoat directory
-        fs.rmSync(WINBOAT_DIR, { recursive: true, force: true });
-        console.info(`Removed ${WINBOAT_DIR}`);
-        console.info("So long and thanks for all the fish!");
+        const manager = new RemovalManager({
+            stopContainer: () => this.stopContainer(),
+            removeContainer: () => this.containerMgr!.remove(),
+            composeFilePath: this.containerMgr!.composeFilePath,
+            runtime: this.#wbConfig!.config.containerRuntime,
+            winboatDir: WINBOAT_DIR,
+        });
+        this.#activeRemovalManager = manager;
+
+        return manager;
+    }
+
+    /**
+     * Removes all WinBoat resources (container, VM disk, data directory) by
+     * delegating to a {@link RemovalManager}. Step failures are reported through
+     * the manager's `error` event, so this method never throws for them.
+     * @note The Config UI uses {@link Winboat.createRemovalManager} directly so it
+     * can render step progress and let the user handle errors without exiting.
+     */
+    async resetWinboat() {
+        logger.info("Resetting Winboat...");
+        await this.createRemovalManager().run();
     }
 
     async launchApp(app: WinApp) {
