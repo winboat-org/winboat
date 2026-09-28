@@ -1,4 +1,4 @@
-import { createHash } from "node:crypto";
+const crypto: typeof import("node:crypto") = require("node:crypto");
 import type { WinApp } from "../../types";
 
 /**
@@ -14,7 +14,7 @@ export const FALLBACK_ICON_SHA256 = "ec131e284727b230c5cf7854e6673fa65c1a5387b66
 
 function isFallbackIcon(icon: string, fallbackSha256: string): boolean {
     try {
-        const digest = createHash("sha256").update(Buffer.from(icon, "base64")).digest("hex");
+        const digest = crypto.createHash("sha256").update(Buffer.from(icon, "base64")).digest("hex");
         return digest === fallbackSha256;
     } catch {
         return false;
