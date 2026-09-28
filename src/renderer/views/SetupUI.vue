@@ -198,6 +198,48 @@
                                         >How?</a
                                     >
                                 </li>
+
+                                <li v-if="dockerInstallMissing && distroFamily" class="flex flex-col items-start gap-2 pl-1">
+                                    <div
+                                        v-if="dockerInstallFinished"
+                                        class="flex flex-col gap-1 bg-neutral-800 rounded-lg p-3 w-full"
+                                    >
+                                        <span class="text-sm text-green-400 flex items-center gap-1">
+                                            <Icon icon="mdi:check-circle" class="size-4"></Icon>
+                                            Docker was installed successfully.
+                                        </span>
+                                        <span class="text-sm text-yellow-300">
+                                            Log out and log back in (or reboot) so the docker group membership takes
+                                            effect, then start WinBoat again and continue the setup. The requirement
+                                            above will clear once you sign in again.
+                                        </span>
+                                    </div>
+                                    <x-button
+                                        v-else-if="!showDockerInstallPlan"
+                                        class="px-4 text-sm"
+                                        @click="showDockerInstallPlan = true"
+                                    >
+                                        <Icon icon="mdi:download" class="size-4 mr-1"></Icon>
+                                        Install Docker automatically
+                                    </x-button>
+                                    <div v-else class="flex flex-col gap-2 bg-neutral-800 rounded-lg p-3 w-full">
+                                        <span class="text-sm text-neutral-300">
+                                            WinBoat will run the following commands with elevated privileges:
+                                        </span>
+                                        <pre class="text-xs text-neutral-400 font-mono whitespace-pre-wrap">{{ dockerInstallPlan.join("\n") }}</pre>
+                                        <div class="flex gap-2">
+                                            <x-button toggled class="px-4 text-sm" :disabled="dockerInstallRunning" @click="runDockerInstall">
+                                                {{ dockerInstallRunning ? "Installing…" : "Run" }}
+                                            </x-button>
+                                            <x-button class="px-4 text-sm" :disabled="dockerInstallRunning" @click="showDockerInstallPlan = false">
+                                                Cancel
+                                            </x-button>
+                                        </div>
+                                        <span class="text-xs text-neutral-500">
+                                            Log out and back in afterwards so the docker group membership applies.
+                                        </span>
+                                    </div>
+                                </li>
                             </template>
 
                             <!-- Podman Specific Requirements -->
@@ -221,6 +263,43 @@
                                         class="text-violet-400 hover:underline ml-1"
                                         >How?</a
                                     >
+                                </li>
+
+                                <li v-if="podmanInstallMissing && distroFamily" class="flex flex-col items-start gap-2 pl-1">
+                                    <div
+                                        v-if="podmanInstallFinished"
+                                        class="flex flex-col gap-1 bg-neutral-800 rounded-lg p-3 w-full"
+                                    >
+                                        <span class="text-sm text-green-400 flex items-center gap-1">
+                                            <Icon icon="mdi:check-circle" class="size-4"></Icon>
+                                            Podman was installed successfully.
+                                        </span>
+                                        <span class="text-sm text-yellow-300">
+                                            The requirement above will clear on the next refresh.
+                                        </span>
+                                    </div>
+                                    <x-button
+                                        v-else-if="!showPodmanInstallPlan"
+                                        class="px-4 text-sm"
+                                        @click="showPodmanInstallPlan = true"
+                                    >
+                                        <Icon icon="mdi:download" class="size-4 mr-1"></Icon>
+                                        Install Podman automatically
+                                    </x-button>
+                                    <div v-else class="flex flex-col gap-2 bg-neutral-800 rounded-lg p-3 w-full">
+                                        <span class="text-sm text-neutral-300">
+                                            WinBoat will run the following commands with elevated privileges:
+                                        </span>
+                                        <pre class="text-xs text-neutral-400 font-mono whitespace-pre-wrap">{{ podmanInstallPlan.join("\n") }}</pre>
+                                        <div class="flex gap-2">
+                                            <x-button toggled class="px-4 text-sm" :disabled="podmanInstallRunning" @click="runPodmanInstall">
+                                                {{ podmanInstallRunning ? "Installing…" : "Run" }}
+                                            </x-button>
+                                            <x-button class="px-4 text-sm" :disabled="podmanInstallRunning" @click="showPodmanInstallPlan = false">
+                                                Cancel
+                                            </x-button>
+                                        </div>
+                                    </div>
                                 </li>
                             </template>
                             <li class="flex items-center gap-2">
@@ -847,6 +926,14 @@ import { setIntervalImmediately } from "../utils/interval";
 import license from "../assets/LICENSE.txt?raw";
 import { ContainerRuntimes, getContainerSpecs, type ContainerSpecs } from "../lib/containers/common";
 import { WinboatConfig } from "../lib/config";
+import { execFileAsync } from "../lib/exec-helper";
+import {
+    buildPkexecArgs,
+    detectDistroFamily,
+    getDockerInstallPlan,
+    getPodmanInstallPlan,
+    type DistroFamily,
+} from "../lib/distro-install";
 
 const path: typeof import("path") = require("node:path");
 const electron: typeof import("electron") = require("electron").remote || require("@electron/remote");
@@ -1047,6 +1134,69 @@ function handleContainerRuntimeChange(e: CustomEvent<{ newValue: ContainerRuntim
     containerSpecs.value = undefined;
     containerRuntime.value = e.detail.newValue;
     void refreshPrerequisites();
+}
+
+const distroFamily = ref<DistroFamily | null>(null);
+try {
+    distroFamily.value = detectDistroFamily(fs.readFileSync("/etc/os-release", "utf8"));
+} catch (e) {
+    console.error("Could not detect the distribution:", e);
+}
+
+const showDockerInstallPlan = ref(false);
+const dockerInstallRunning = ref(false);
+const dockerInstallFinished = ref(false);
+
+const dockerInstallMissing = computed(() => {
+    if (!containerSpecs.value || !("dockerInstalled" in containerSpecs.value)) return false;
+    const dockerSpecs = containerSpecs.value;
+    return !(dockerSpecs.dockerInstalled && dockerSpecs.dockerComposeInstalled && dockerSpecs.dockerIsInUserGroups);
+});
+
+const dockerInstallPlan = computed(() =>
+    distroFamily.value ? getDockerInstallPlan(distroFamily.value, os.userInfo().username) : [],
+);
+
+async function runDockerInstall() {
+    dockerInstallRunning.value = true;
+    try {
+        await execFileAsync("pkexec", buildPkexecArgs(dockerInstallPlan.value));
+        dockerInstallFinished.value = true;
+        showDockerInstallPlan.value = false;
+    } catch (e) {
+        console.error("Automatic Docker installation failed:", e);
+    } finally {
+        dockerInstallRunning.value = false;
+        void refreshPrerequisites();
+    }
+}
+
+const showPodmanInstallPlan = ref(false);
+const podmanInstallRunning = ref(false);
+const podmanInstallFinished = ref(false);
+
+const podmanInstallMissing = computed(() => {
+    if (!containerSpecs.value || !("podmanInstalled" in containerSpecs.value)) return false;
+    const podmanSpecs = containerSpecs.value;
+    return !(podmanSpecs.podmanInstalled && podmanSpecs.podmanComposeInstalled);
+});
+
+const podmanInstallPlan = computed(() =>
+    distroFamily.value ? getPodmanInstallPlan(distroFamily.value) : [],
+);
+
+async function runPodmanInstall() {
+    podmanInstallRunning.value = true;
+    try {
+        await execFileAsync("pkexec", buildPkexecArgs(podmanInstallPlan.value));
+        podmanInstallFinished.value = true;
+        showPodmanInstallPlan.value = false;
+    } catch (e) {
+        console.error("Automatic Podman installation failed:", e);
+    } finally {
+        podmanInstallRunning.value = false;
+        void refreshPrerequisites();
+    }
 }
 
 function continueFromPrerequisites() {
