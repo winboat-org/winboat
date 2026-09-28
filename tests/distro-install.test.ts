@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import { buildPkexecArgs, detectDistroFamily, getDockerInstallPlan } from "../src/renderer/lib/distro-install";
+import { buildPkexecArgs, detectDistroFamily, getDockerInstallPlan, getPodmanInstallPlan } from "../src/renderer/lib/distro-install";
 
 const osRelease = (id: string, idLike?: string) =>
     `NAME="Test"\nID=${id}\n${idLike ? `ID_LIKE=${idLike}\n` : ""}VERSION_ID="1"\n`;
@@ -84,5 +84,35 @@ describe("docker install plan", () => {
 describe("pkexec invocation", () => {
     it("joins the plan into a single bash -c invocation", () => {
         expect(buildPkexecArgs(["a", "b"])).toEqual(["bash", "-c", "a && b"]);
+    });
+});
+
+describe("podman install plan", () => {
+    it("installs podman and podman-compose on debian", () => {
+        const plan = getPodmanInstallPlan("debian");
+        expect(plan[0]).toBe("apt-get update");
+        expect(plan[1]).toBe("apt-get install -y podman podman-compose");
+    });
+
+    it("installs podman and podman-compose on fedora", () => {
+        expect(getPodmanInstallPlan("fedora")).toEqual(["dnf install -y podman podman-compose"]);
+    });
+
+    it("installs podman on arch", () => {
+        expect(getPodmanInstallPlan("arch")).toEqual(["pacman -Sy --noconfirm podman podman-compose"]);
+    });
+
+    it("installs podman on suse", () => {
+        expect(getPodmanInstallPlan("suse")).toEqual(["zypper --non-interactive install podman podman-compose"]);
+    });
+
+    it("requires no service or group step, unlike docker", () => {
+        // Rootless podman works without a service unit or a supplementary group,
+        // so unlike the docker plan nothing needs enabling and no logout is needed
+        for (const family of ["debian", "fedora", "arch", "suse"] as const) {
+            const plan = getPodmanInstallPlan(family);
+            expect(plan.some(cmd => cmd.startsWith("systemctl"))).toBe(false);
+            expect(plan.some(cmd => cmd.startsWith("usermod"))).toBe(false);
+        }
     });
 });

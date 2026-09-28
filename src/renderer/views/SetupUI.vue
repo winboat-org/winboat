@@ -264,6 +264,43 @@
                                         >How?</a
                                     >
                                 </li>
+
+                                <li v-if="podmanInstallMissing && distroFamily" class="flex flex-col items-start gap-2 pl-1">
+                                    <div
+                                        v-if="podmanInstallFinished"
+                                        class="flex flex-col gap-1 bg-neutral-800 rounded-lg p-3 w-full"
+                                    >
+                                        <span class="text-sm text-green-400 flex items-center gap-1">
+                                            <Icon icon="mdi:check-circle" class="size-4"></Icon>
+                                            Podman was installed successfully.
+                                        </span>
+                                        <span class="text-sm text-yellow-300">
+                                            The requirement above will clear on the next refresh.
+                                        </span>
+                                    </div>
+                                    <x-button
+                                        v-else-if="!showPodmanInstallPlan"
+                                        class="px-4 text-sm"
+                                        @click="showPodmanInstallPlan = true"
+                                    >
+                                        <Icon icon="mdi:download" class="size-4 mr-1"></Icon>
+                                        Install Podman automatically
+                                    </x-button>
+                                    <div v-else class="flex flex-col gap-2 bg-neutral-800 rounded-lg p-3 w-full">
+                                        <span class="text-sm text-neutral-300">
+                                            WinBoat will run the following commands with elevated privileges:
+                                        </span>
+                                        <pre class="text-xs text-neutral-400 font-mono whitespace-pre-wrap">{{ podmanInstallPlan.join("\n") }}</pre>
+                                        <div class="flex gap-2">
+                                            <x-button toggled class="px-4 text-sm" :disabled="podmanInstallRunning" @click="runPodmanInstall">
+                                                {{ podmanInstallRunning ? "Installing…" : "Run" }}
+                                            </x-button>
+                                            <x-button class="px-4 text-sm" :disabled="podmanInstallRunning" @click="showPodmanInstallPlan = false">
+                                                Cancel
+                                            </x-button>
+                                        </div>
+                                    </div>
+                                </li>
                             </template>
                             <li class="flex items-center gap-2">
                                 <span v-if="specs.freeRDP3Installed" class="text-green-500">✔</span>
@@ -894,6 +931,7 @@ import {
     buildPkexecArgs,
     detectDistroFamily,
     getDockerInstallPlan,
+    getPodmanInstallPlan,
     type DistroFamily,
 } from "../lib/distro-install";
 
@@ -1129,6 +1167,34 @@ async function runDockerInstall() {
         console.error("Automatic Docker installation failed:", e);
     } finally {
         dockerInstallRunning.value = false;
+        void refreshPrerequisites();
+    }
+}
+
+const showPodmanInstallPlan = ref(false);
+const podmanInstallRunning = ref(false);
+const podmanInstallFinished = ref(false);
+
+const podmanInstallMissing = computed(() => {
+    if (!containerSpecs.value || !("podmanInstalled" in containerSpecs.value)) return false;
+    const podmanSpecs = containerSpecs.value;
+    return !(podmanSpecs.podmanInstalled && podmanSpecs.podmanComposeInstalled);
+});
+
+const podmanInstallPlan = computed(() =>
+    distroFamily.value ? getPodmanInstallPlan(distroFamily.value) : [],
+);
+
+async function runPodmanInstall() {
+    podmanInstallRunning.value = true;
+    try {
+        await execFileAsync("pkexec", buildPkexecArgs(podmanInstallPlan.value));
+        podmanInstallFinished.value = true;
+        showPodmanInstallPlan.value = false;
+    } catch (e) {
+        console.error("Automatic Podman installation failed:", e);
+    } finally {
+        podmanInstallRunning.value = false;
         void refreshPrerequisites();
     }
 }

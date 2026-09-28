@@ -57,6 +57,19 @@ export function getDockerInstallPlan(family: DistroFamily, username: string): st
     return [...INSTALL_COMMANDS[family], ENABLE_SERVICE_COMMAND, `usermod -aG docker ${username}`];
 }
 
+// Rootless podman needs no service unit and no supplementary group, so unlike the
+// docker plan there is nothing to enable and no logout required after installing.
+const PODMAN_INSTALL_COMMANDS: Record<DistroFamily, string[]> = {
+    debian: ["apt-get update", "apt-get install -y podman podman-compose"],
+    fedora: ["dnf install -y podman podman-compose"],
+    arch: ["pacman -Sy --noconfirm podman podman-compose"],
+    suse: ["zypper --non-interactive install podman podman-compose"],
+};
+
+export function getPodmanInstallPlan(family: DistroFamily): string[] {
+    return [...PODMAN_INSTALL_COMMANDS[family]];
+}
+
 export function buildPkexecArgs(plan: string[]): string[] {
     return ["bash", "-c", plan.join(" && ")];
 }
