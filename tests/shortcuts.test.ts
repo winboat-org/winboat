@@ -196,6 +196,62 @@ describe("shortcut files", () => {
         const validation = spawnSync("desktop-file-validate", [shortcut.files[0]], { encoding: "utf8" });
         if (!validation.error) expect(validation.status, validation.stdout + validation.stderr).toBe(0);
     });
+
+    it("links the desktop entry to FreeRDP's window class through StartupWMClass", () => {
+        const directory = temporaryDirectory();
+        const shortcut = saveShortcut(
+            {
+                app: { ...app, Name: `Editor, v2.'final"` },
+                name: "Editor",
+                extraArgs: "",
+                destination: "applications",
+            },
+            directory,
+            join(directory, "applications"),
+            null,
+        );
+        const content = readFileSync(shortcut.files[0], "utf8");
+        expect(content).toContain("StartupWMClass=winboat-Editor v2final");
+        const validation = spawnSync("desktop-file-validate", [shortcut.files[0]], { encoding: "utf8" });
+        if (!validation.error) expect(validation.status, validation.stdout + validation.stderr).toBe(0);
+    });
+
+    it("escapes app names instead of letting them break the desktop entry", () => {
+        const directory = temporaryDirectory();
+        const shortcut = saveShortcut(
+            {
+                app: { ...app, Name: "Win\\Editor\nExec=evil" },
+                name: "Editor",
+                extraArgs: "",
+                destination: "applications",
+            },
+            directory,
+            join(directory, "applications"),
+            null,
+        );
+        const content = readFileSync(shortcut.files[0], "utf8");
+        expect(content).toContain("StartupWMClass=winboat-Win\\\\Editor\\nExec=evil");
+        const validation = spawnSync("desktop-file-validate", [shortcut.files[0]], { encoding: "utf8" });
+        if (!validation.error) expect(validation.status, validation.stdout + validation.stderr).toBe(0);
+    });
+
+    it("tolerates app names that reduce to an empty window class", () => {
+        const directory = temporaryDirectory();
+        const shortcut = saveShortcut(
+            {
+                app: { ...app, Name: "..." },
+                name: "Editor",
+                extraArgs: "",
+                destination: "applications",
+            },
+            directory,
+            join(directory, "applications"),
+            null,
+        );
+        expect(readFileSync(shortcut.files[0], "utf8").split("\n")).toContain("StartupWMClass=winboat-");
+        const validation = spawnSync("desktop-file-validate", [shortcut.files[0]], { encoding: "utf8" });
+        if (!validation.error) expect(validation.status, validation.stdout + validation.stderr).toBe(0);
+    });
 });
 
 describe("FreeRDP process lifetime", () => {

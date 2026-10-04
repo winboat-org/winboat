@@ -17,6 +17,15 @@ export function appKey(app: Pick<WinApp, "Path" | "Args">): string {
     return JSON.stringify([app.Path.replaceAll("/", "\\").toLowerCase(), app.Args || ""]);
 }
 
+/**
+ * App name as FreeRDP receives it for RemoteApp launches (see `/wm-class` in Winboat.launchApp).
+ * Desktop entries point `StartupWMClass` at the exact same value so the desktop environment
+ * can match the running window back to its launcher.
+ */
+export function cleanAppName(appName: string): string {
+    return appName.replaceAll(/[,.'"]/g, "");
+}
+
 function desktopDirectory(): string | null {
     const file = join(process.env.XDG_CONFIG_HOME || join(homedir(), ".config"), "user-dirs.dirs");
     const match = fs.existsSync(file) && fs.readFileSync(file, "utf8").match(/^XDG_DESKTOP_DIR="(.*)"\s*$/m);
@@ -134,6 +143,9 @@ export function saveShortcut(
         `Name=${desktopValue(shortcut.name)}`,
         `Exec=${desktopExec(join(directory, "launch"))} ${id}`,
         `Icon=${desktopValue(icon)}`,
+        // Escaped like every other value: desktop entry unescaping hands back the exact
+        // bytes FreeRDP stores in the window's WM_CLASS, so window matching still works.
+        `StartupWMClass=${desktopValue(`winboat-${cleanAppName(shortcut.app.Name)}`)}`,
         "Terminal=false",
         "Categories=Utility;",
         `X-WinBoat-Shortcut=${id}`,

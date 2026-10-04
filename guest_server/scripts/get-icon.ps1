@@ -26,6 +26,19 @@ $ErrorActionPreference = 'SilentlyContinue'
 # Load System.Drawing for icon extraction/conversion
 Add-Type -AssemblyName System.Drawing -ErrorAction SilentlyContinue
 
+# Diagnostics: stdout must stay clean (base64 only), so everything goes to
+# stderr and %ProgramData%\WinBoat\logs\get-icon.log
+$logFile = Join-Path $env:ProgramData 'WinBoat\logs\get-icon.log'
+function Write-Diag {
+    param([string]$Message)
+    $line = '{0} [get-icon] {1}' -f (Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff'), $Message
+    try {
+        New-Item -ItemType Directory -Force -Path (Split-Path $logFile) | Out-Null
+        Add-Content -LiteralPath $logFile -Value $line -ErrorAction SilentlyContinue
+    } catch { }
+    [Console]::Error.WriteLine($line)
+}
+
 # Default transparent 256x256 PNG as Base64 (used if extraction fails)
 $defaultIconBase64 = "iVBORw0KGgoAAAANSUhEUgAAAQAAAAEACAMAAABrrFhUAAABiVBMVEUAAABzc3N5eXl0dHR5dnN5dnN4eHV5d3V6eHR5d3V6eHR5d3R5d3R5d3R5d3R5d3R5d3R5d3R5d3R5d3R5d3QGabwGar0Ha70Ha74HbL4HbL8Hbb8HbcAIbsAIbsEIb8EIcMIJccIJccMJcsMJcsQJc8QKc8UKdMUKdMYKdcYKdscLdscLd8cLd8gLeMgLeMkLeckMecoMesoMessMe8sMe8wMfMwNfMwNfcwNfc0Nfs0Nfs4Nf84Of88OgM8OgNAOgdAOgdEOgtEPgtEPg9IPhNIPhNMPhdMQhdQQhtQQhtUQh9UQh9YRiNYRidcRitcRitgSi9gSi9kSjNkSjNoSjdoSjdsTjtsTj9wed8IeeMMfecMpmd4qmd8qmt94rdl5d3R5rtp8end+wep/weqHhYOMi4iOjIqPjYqPjYuWlpbAv77BwL7Cwb/CwcDDwsHEw8LExMTPz87Q0M/S0dDX19bY19bk5OPl5eTx8PDx8fHz8/Lz8/P09PP09vj09/n4+Pj6+vr///+Z/ULnAAAAFXRSTlMAFBUWUlRVgYKDhM3Oz9Dw8fLz9P7FJ1F0AAAAAWJLR0SCi7P/RAAAAtFJREFUeNrt2s1qE1EYxvGZTGfSIEYKQhYigqtcSN2IVi/BO2z9WHotomIXorQS05JkpplmalyIbmrz2ff3h1C6aJnzz/O85+S0SQIAAAAAAAAAAAAAAG476eyVtbPiebiVvx1fTC6uBBR3XgR9918PyyRLiu5B1Pj3P5fTNOve9vd/b/Y6/cfXhqNBqx01/1e8LFo7sTeBnegC8vRV8HNAKyEg+BC4KkK3k4dbeTkaTOYC8vu7EcdfXnwrf1Wguxsz/e278xnQidr/zlxAHlVAYRcggAACCCCAAAIIIIAAAgggICZ//1ng6zV+uvfnt9Mv5WTpT5y3H7QW9cCLTsDx2fLXn5TD4+UmoPf/v2xcryS1o4U98KITMFlNbUtDcKkVuAE1Ac4BBKiABEiABEiABEhAzPuA9QjYoPuA21GB3rYtoWcGEGAbJIAAM0ACCFABAlSAABVY633AerjZA0uA+wDboF3ADFABJ0EzwAwwA8wAAgxBM0ACknD/H+AcsMiP1+sR0DMDCLANEqACBKiABEgAASpAgAq4D7jmJ0cVWPDH6627DzADnAPMABUgwAzwWcAQNAPMADPADDADtvM+QAU25z5AAgiwCxCgAgSoAAEEmAESIAEERLwPMAPcB5gBBJgBBKiABEiABEiABEgAASoQ7z7ADIh+H2AGqAABBJgBBKgAASpAgApIgARIgARIgAQQoAIEqEAkAfureeYnG1uBfDUdKDZWwKOnk/dLX/5+8XBjBWSPk74hSAABBBBAAAEEEEAAAVsjoIy6+MlcQBVVQDUXcBZVwPB3AuqY66+bBGSf+rMkdEIKODlPkqNWY2EQsgTDpgHVTiNg+n28l0bL/8lw2uyAWf1xdotVj0ejNI1zJqhGp4PzZvIdnqdJfu9Z2FPQux9VlkzLD/2g6z/8WSVN9VtF1j4It/o342pSJwAAAAAAAAAAAAAAIACXIfSz2zOYD54AAAAASUVORK5CYII="
 
@@ -78,7 +91,10 @@ function Get-IconBase64FromFile {
         } else {
             $ico = [System.Drawing.Icon]::ExtractAssociatedIcon($filePath)
         }
-        if ($null -eq $ico) { return $null }
+        if ($null -eq $ico) {
+            Write-Diag "no associated icon found for: $filePath"
+            return $null
+        }
 
         $bmp = $ico.ToBitmap()
         $resizedBmp = New-Object System.Drawing.Bitmap($size, $size)
@@ -98,6 +114,7 @@ function Get-IconBase64FromFile {
 
         return $base64
     } catch {
+        Write-Diag "icon extraction threw for ${filePath}: $_"
         return $null
     }
 }
@@ -105,6 +122,7 @@ function Get-IconBase64FromFile {
 # Expand %VAR% environment variables without evaluating PowerShell expressions
 $expandedPath = try { [System.Environment]::ExpandEnvironmentVariables($Path) } catch { $Path }
 if (-not (Test-LocalFilePath $expandedPath)) {
+    Write-Diag "input path does not exist: $expandedPath - returning fallback icon"
     Write-FallbackBase64
     exit 0
 }
@@ -114,6 +132,7 @@ $candidatePath = $expandedPath
 if ($candidatePath -like '*.lnk') {
     $lnkTarget = Resolve-LnkTargetPath -lnkPath $candidatePath
     if (-not $lnkTarget) {
+        Write-Diag "could not resolve .lnk target: $candidatePath - returning fallback icon"
         Write-FallbackBase64
         exit 0
     }
@@ -126,14 +145,20 @@ if (-not $resolvedPath) { $resolvedPath = $candidatePath }
 
 # Ensure target exists and is a file
 if (-not (Test-LocalFilePath $resolvedPath) -or -not (Test-Path -LiteralPath $resolvedPath -PathType Leaf)) {
+    Write-Diag "resolved target does not exist: $resolvedPath - returning fallback icon"
     Write-FallbackBase64
     exit 0
 }
 
 $result = Get-IconBase64FromFile -filePath $resolvedPath -size $Size
 if ($result) {
+    # NOTE: ExtractAssociatedIcon/Icon.ToBitmap carry no alpha channel, so icons
+    # whose artwork relies on transparency come out with a black background.
+    # Until this is replaced with a PNG-frame extractor, log the limitation.
+    Write-Diag "extracted icon: $resolvedPath (via ExtractAssociatedIcon, no alpha - black backgrounds possible)"
     Write-Output $result
 } else {
+    Write-Diag "icon extraction returned nothing: $resolvedPath - returning fallback icon"
     Write-FallbackBase64
 }
 

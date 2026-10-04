@@ -9,12 +9,14 @@ import { guestAuthHeaders, guestServerUpdateZipPath } from "../utils/guestServer
 import { setIntervalImmediately } from "../utils/interval";
 import { createLogger } from "../utils/log";
 import { openLink } from "../utils/openLink";
+import { findAppsWithoutIcon } from "./app-icons";
 import { MultiMonitorMode, WinboatConfig } from "./config";
 import { HOST_QMP_PORT, HOST_RDP_PORT, NOVNC_URL, WINBOAT_API_URL, WINBOAT_DIR, WINBOAT_LOG_FILE, WINBOAT_UPDATE_URL } from "./constants";
 import { ContainerRuntimes, createContainer } from "./containers/common";
 import { ContainerManager, ContainerStatus, isStaleContainerError } from "./containers/container";
 import type { LaunchState } from "../../types";
 import { GuestServiceError } from "./shortcut-startup";
+import { cleanAppName } from "./shortcut-files";
 import { QMPManager } from "./qmp";
 
 const nodeFetch: typeof import("node-fetch").default = require("node-fetch");
@@ -127,6 +129,12 @@ class AppManager {
         const res = await nodeFetch(`${WINBOAT_API_URL}/apps`, { headers: guestAuthHeaders() });
         const newApps = (await res.json()) as WinApp[];
         newApps.push(...presetApps, ...this.#wbConfig!.config.customApps);
+
+        for (const app of findAppsWithoutIcon(newApps)) {
+            logger.warn(
+                `No icon extracted for "${app.Name}" (${app.Path}) — the app will fall back to the WinBoat icon.`,
+            );
+        }
 
         if (this.appCache.length == newApps.length && !options.forceRead) return;
 
@@ -770,7 +778,7 @@ export class Winboat {
             return;
         }
 
-        const cleanAppName = app.Name.replaceAll(/[,.'"]/g, "");
+        const appName = cleanAppName(app.Name);
         const { username, password } = this.getCredentials();
 
         logger.info(`Launching app: ${app.Name} at path ${app.Path}`);
@@ -805,8 +813,8 @@ export class Winboat {
                 "-wallpaper",
                 this.#wbConfig?.config.multiMonitor === MultiMonitorMode.MultiMon ? "/multimon" : "",
                 `/scale-desktop:${this.#wbConfig?.config.scaleDesktop ?? 100}`,
-                `/wm-class:winboat-${cleanAppName}`,
-                `/app:program:${app.Path},name:${cleanAppName}${app.Args ? `,cmd:"${app.Args}"` : ""}`,
+                `/wm-class:winboat-${appName}`,
+                `/app:program:${app.Path},name:${appName}${app.Args ? `,cmd:"${app.Args}"` : ""}`,
             ]);
         }
 
