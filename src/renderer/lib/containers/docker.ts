@@ -11,7 +11,7 @@ import {
     ContainerStatus,
 } from "./container";
 import YAML from "yaml";
-import { execFileAsync, stringifyExecFile } from "../exec-helper";
+import { ExecFileAsyncError, execFileAsync, stringifyExecFile } from "../exec-helper";
 
 const path: typeof import("node:path") = require("node:path");
 const fs: typeof import("node:fs") = require("node:fs");
@@ -166,12 +166,16 @@ export class DockerContainer extends ContainerManager {
         }
 
         // Docker user group check
+        // `id -Gn` exits 1 if one of the user's group IDs has no name (common with LDAP/SSSD),
+        // but it still prints the names it could resolve, so check stdout in that case too.
+        let userGroups = "";
         try {
-            const { stdout: userGroups } = await execFileAsync("id", ["-Gn"]);
-            specs.dockerIsInUserGroups = userGroups.split(/\s+/).includes("docker");
+            ({ stdout: userGroups } = await execFileAsync("id", ["-Gn"]));
         } catch (e) {
+            userGroups = (e as ExecFileAsyncError).stdout ?? "";
             console.error("Error checking user groups for docker:", e);
         }
+        specs.dockerIsInUserGroups = userGroups.split(/\s+/).includes("docker");
 
         return specs;
     }
